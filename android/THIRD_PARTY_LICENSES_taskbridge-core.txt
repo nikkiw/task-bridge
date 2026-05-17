@@ -1,0 +1,190 @@
+
+Dependency License Report for taskbridge-core 
+
+1. Group: androidx.annotation  Name: annotation  Version: 1.7.0
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/annotation#1.7.0
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+2. Group: androidx.annotation  Name: annotation-jvm  Version: 1.7.0
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/annotation#1.7.0
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+3. Group: androidx.datastore  Name: datastore-core  Version: 1.1.1
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/datastore#1.1.1
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+4. Group: androidx.datastore  Name: datastore-core-android  Version: 1.1.1
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/datastore#1.1.1
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+5. Group: androidx.datastore  Name: datastore-core-okio  Version: 1.1.1
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/datastore#1.1.1
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+6. Group: androidx.datastore  Name: datastore-core-okio-jvm  Version: 1.1.1
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/datastore#1.1.1
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+7. Group: androidx.datastore  Name: datastore-preferences-core  Version: 1.1.1
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/datastore#1.1.1
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+8. Group: androidx.datastore  Name: datastore-preferences-core-jvm  Version: 1.1.1
+
+POM Project URL: https://developer.android.com/jetpack/androidx/releases/datastore#1.1.1
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+9. Group: com.squareup.okio  Name: okio  Version: 3.4.0
+
+POM Project URL: https://github.com/square/okio/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+10. Group: com.squareup.okio  Name: okio-jvm  Version: 3.4.0
+
+POM Project URL: https://github.com/square/okio/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+11. Group: org.jetbrains  Name: annotations  Version: 23.0.0
+
+POM Project URL: https://github.com/JetBrains/java-annotations
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+12. Group: org.jetbrains.kotlin  Name: kotlin-android-extensions-runtime  Version: 1.9.22
+
+POM Project URL: https://kotlinlang.org/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+13. Group: org.jetbrains.kotlin  Name: kotlin-parcelize-runtime  Version: 1.9.22
+
+POM Project URL: https://kotlinlang.org/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+14. Group: org.jetbrains.kotlin  Name: kotlin-stdlib  Version: 2.2.10
+
+POM Project URL: https://kotlinlang.org/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+15. Group: org.jetbrains.kotlin  Name: kotlin-stdlib-common  Version: 2.2.10
+
+POM Project URL: https://kotlinlang.org/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+16. Group: org.jetbrains.kotlin  Name: kotlin-stdlib-jdk7  Version: 1.8.0
+
+POM Project URL: https://kotlinlang.org/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+17. Group: org.jetbrains.kotlin  Name: kotlin-stdlib-jdk8  Version: 1.8.0
+
+POM Project URL: https://kotlinlang.org/
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+18. Group: org.jetbrains.kotlinx  Name: kotlinx-coroutines-core  Version: 1.10.2
+
+POM Project URL: https://github.com/Kotlin/kotlinx.coroutines
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+19. Group: org.jetbrains.kotlinx  Name: kotlinx-coroutines-core-jvm  Version: 1.10.2
+
+POM Project URL: https://github.com/Kotlin/kotlinx.coroutines
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+20. Group: org.jetbrains.kotlinx  Name: kotlinx-serialization-core  Version: 1.8.1
+
+POM Project URL: https://github.com/Kotlin/kotlinx.serialization
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+21. Group: org.jetbrains.kotlinx  Name: kotlinx-serialization-core-jvm  Version: 1.8.1
+
+POM Project URL: https://github.com/Kotlin/kotlinx.serialization
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+22. Group: org.jetbrains.kotlinx  Name: kotlinx-serialization-json  Version: 1.8.1
+
+POM Project URL: https://github.com/Kotlin/kotlinx.serialization
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+23. Group: org.jetbrains.kotlinx  Name: kotlinx-serialization-json-jvm  Version: 1.8.1
+
+POM Project URL: https://github.com/Kotlin/kotlinx.serialization
+
+POM License: Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+
+This report was generated at Wed May 13 23:56:58 AMT 2026.
+

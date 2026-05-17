@@ -1,0 +1,6 @@
+{
+  "type": "SUBSCRIPTION_CONFIRMED",
+  "taskId": "task_123",
+  "replayStartedAfterEventId": "4",
+  "live": true
+}

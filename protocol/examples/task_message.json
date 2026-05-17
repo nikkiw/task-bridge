@@ -1,0 +1,10 @@
+{
+  "type": "TASK_MESSAGE",
+  "taskId": "task_123",
+  "eventId": "5",
+  "createdAt": "2026-05-04T12:00:25Z",
+  "payload": {
+    "message": "Waiting for downstream executor capacity",
+    "level": "info"
+  }
+}

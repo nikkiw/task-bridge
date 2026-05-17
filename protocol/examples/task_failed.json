@@ -1,0 +1,11 @@
+{
+  "type": "TASK_FAILED",
+  "taskId": "task_123",
+  "eventId": "11",
+  "createdAt": "2026-05-04T12:01:05Z",
+  "payload": {
+    "code": "TASK_EXECUTION_FAILED",
+    "message": "Executor failed to classify the uploaded input",
+    "retryable": false
+  }
+}

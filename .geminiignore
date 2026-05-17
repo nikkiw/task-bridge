@@ -1,0 +1,26 @@
+# General
+**/.git/
+**/node_modules/
+**/.venv/
+**/dist/
+**/build/
+**/.gradle/
+**/intermediates/
+**/outputs/
+*.log
+package-lock.json
+uv.lock
+**/.pytest_cache/
+**/.ruff_cache/
+**/__pycache__/
+**/.cache/
+**/.DS_Store
+**/.cursor/
+**/.agent/
+uv.lock
+package-lock.json
+
+# DSPY Specific (High Volume)
+**/docs/site/
+**/site/
+

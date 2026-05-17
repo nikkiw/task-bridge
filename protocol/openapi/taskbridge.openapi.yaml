@@ -1,0 +1,372 @@
+openapi: 3.0.3
+info:
+  title: TaskBridge API
+  description: Protocol-first API for reliable long-running task streaming.
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+    description: Example production server
+tags:
+  - name: tasks
+  - name: streaming
+paths:
+  /api/v1/tasks:
+    post:
+      tags: [tasks]
+      summary: Start a new long-running task
+      description: >
+        Creates a task and returns a stable `taskId`. The request is idempotent by
+        `clientRequestId` within the authenticated owner scope.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCreateMultipartRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateJsonRequest'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreatedResponse'
+        '200':
+          description: Existing task returned because the request was idempotently deduplicated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreatedResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
+          description: "`clientRequestId` reused with conflicting payload"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/tasks/{taskId}/events:
+    get:
+      tags: [streaming]
+      summary: Poll task events after a checkpoint
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/AfterEventId'
+        - $ref: '#/components/parameters/WaitTimeoutMs'
+        - $ref: '#/components/parameters/MaxEvents'
+      responses:
+        '200':
+          description: Events newer than `afterEventId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollEventsResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/tasks/{taskId}/actions:
+    post:
+      tags: [tasks]
+      summary: Submit an action for a suspended task
+      description: >
+        Accepts an idempotent client action for a previously emitted
+        `TASK_SUSPENDED` event. A successful acceptance is also represented in
+        the replay stream as `TASK_ACTION_ACCEPTED`.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskClientActionRequest'
+      responses:
+        '202':
+          description: Action accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskClientActionResponse'
+        '200':
+          description: Existing action returned because the request was idempotently deduplicated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskClientActionResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '409':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/tasks/{taskId}/cancel:
+    post:
+      tags: [tasks]
+      summary: Cancel a task
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelTaskRequest'
+      responses:
+        '202':
+          description: Cancellation requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelTaskResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/v1/tasks/ws:
+    get:
+      tags: [streaming]
+      summary: WebSocket endpoint for task streaming
+      description: >
+        This path is upgraded to a WebSocket connection by the server. The client
+        sends a subscribe frame with `taskId` and optional `lastEventId`. The server
+        replays strictly newer events and then switches to live delivery.
+      x-taskbridge-transport: websocket
+      x-taskbridge-client-frame:
+        $ref: '#/components/schemas/WebSocketSubscribeRequest'
+      x-taskbridge-server-control-frame:
+        $ref: '#/components/schemas/WebSocketSubscriptionConfirmed'
+      x-taskbridge-server-heartbeat-frame:
+        $ref: '#/components/schemas/WebSocketHeartbeat'
+      x-taskbridge-server-event-frame:
+        $ref: '#/components/schemas/TaskEvent'
+      responses:
+        '101':
+          description: Switching Protocols
+components:
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+    AfterEventId:
+      name: afterEventId
+      in: query
+      required: false
+      description: Return only events strictly newer than this event id.
+      schema:
+        type: string
+    WaitTimeoutMs:
+      name: waitTimeoutMs
+      in: query
+      required: false
+      description: Optional long-poll wait timeout in milliseconds.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 60000
+        default: 25000
+    MaxEvents:
+      name: maxEvents
+      in: query
+      required: false
+      description: Optional maximum number of events to return in one response.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 100
+  responses:
+    ErrorResponse:
+      description: Stable JSON error envelope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    TaskCreateMultipartRequest:
+      type: object
+      required:
+        - clientRequestId
+        - taskType
+      properties:
+        clientRequestId:
+          type: string
+        taskType:
+          type: string
+          description: Logical task family understood by the host application.
+        input:
+          type: string
+          description: JSON string with task-specific input metadata.
+        metadata:
+          type: string
+          description: JSON string with task metadata such as app or tracing context.
+        attachment:
+          type: string
+          format: binary
+    TaskCreateJsonRequest:
+      type: object
+      required:
+        - clientRequestId
+        - taskType
+      properties:
+        clientRequestId:
+          type: string
+        taskType:
+          type: string
+        input:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+    TaskCreatedResponse:
+      type: object
+      required:
+        - taskId
+        - status
+        - clientRequestId
+      properties:
+        taskId:
+          type: string
+        status:
+          type: string
+          enum: [ACCEPTED, RUNNING, COMPLETED, FAILED, CANCELLED]
+        clientRequestId:
+          type: string
+        deduplicated:
+          type: boolean
+          default: false
+    PollEventsResponse:
+      type: object
+      required:
+        - taskId
+        - events
+        - hasMore
+      properties:
+        taskId:
+          type: string
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskEvent'
+        nextAfterEventId:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+    CancelTaskRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+    CancelTaskResponse:
+      type: object
+      required:
+        - taskId
+        - status
+      properties:
+        taskId:
+          type: string
+        status:
+          type: string
+          enum: [CANCELLATION_REQUESTED, ALREADY_TERMINAL]
+    TaskClientActionRequest:
+      $ref: '../schemas/task_client_action.schema.json'
+    TaskClientActionResponse:
+      $ref: '../schemas/task_client_action_response.schema.json'
+    TaskActionAcceptedPayload:
+      type: object
+      required:
+        - suspendId
+        - clientActionId
+        - actionType
+        - acceptedAt
+      properties:
+        suspendId:
+          type: string
+        clientActionId:
+          type: string
+        actionType:
+          type: string
+        acceptedAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+    WebSocketSubscribeRequest:
+      type: object
+      required:
+        - action
+        - taskId
+      properties:
+        action:
+          type: string
+          enum: [subscribe]
+        taskId:
+          type: string
+        lastEventId:
+          type: string
+          nullable: true
+    WebSocketSubscriptionConfirmed:
+      type: object
+      required:
+        - type
+        - taskId
+        - live
+      properties:
+        type:
+          type: string
+          enum: [SUBSCRIPTION_CONFIRMED]
+        taskId:
+          type: string
+        replayStartedAfterEventId:
+          type: string
+          nullable: true
+        live:
+          type: boolean
+    WebSocketHeartbeat:
+      type: object
+      required:
+        - type
+        - taskId
+        - live
+      properties:
+        type:
+          type: string
+          enum: [HEARTBEAT]
+        taskId:
+          type: string
+        live:
+          type: boolean
+    TaskEvent:
+      $ref: '../schemas/task_event.schema.json'

@@ -1,0 +1,9 @@
+{
+  "type": "TASK_STARTED",
+  "taskId": "task_123",
+  "eventId": "1",
+  "createdAt": "2026-05-04T12:00:00Z",
+  "payload": {
+    "message": "Task started"
+  }
+}

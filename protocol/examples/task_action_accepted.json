@@ -1,0 +1,12 @@
+{
+  "type": "TASK_ACTION_ACCEPTED",
+  "taskId": "task-1",
+  "eventId": "5-0",
+  "createdAt": "2026-05-05T12:00:04Z",
+  "payload": {
+    "suspendId": "550e8400-e29b-41d4-a716-446655440000",
+    "clientActionId": "8c816c7e-65dd-4ef6-91a1-9382b5bba700",
+    "actionType": "submit_form",
+    "acceptedAt": "2026-05-05T12:00:04Z"
+  }
+}

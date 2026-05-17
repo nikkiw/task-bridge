@@ -1,0 +1,101 @@
+name: docs-site
+
+on:
+  pull_request:
+    paths:
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "scripts/docs_prepare.py"
+      - "tests/test_docs_prepare.py"
+      - "docs/**"
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "android/**"
+      - "backend/taskbridge-fastapi/**"
+      - "backend/adapters/**"
+      - "protocol/**"
+      - "examples/**"
+      - ".github/workflows/docs-site.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "scripts/docs_prepare.py"
+      - "tests/test_docs_prepare.py"
+      - "docs/**"
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "android/**"
+      - "backend/taskbridge-fastapi/**"
+      - "backend/adapters/**"
+      - "protocol/**"
+      - "examples/**"
+      - ".github/workflows/docs-site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-site
+  cancel-in-progress: true
+
+jobs:
+  docs-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Sync repo tooling dependencies
+        run: uv sync --group docs --group dev
+
+      - name: Run docs prepare tests
+        run: uv run pytest tests/test_docs_prepare.py -q
+
+      - name: Build Android API reference assets
+        run: uv run python scripts/docs_prepare.py
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build MkDocs site
+        run: uv run mkdocs build --strict
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  docs-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docs-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

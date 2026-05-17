@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  temporal:
+    image: temporalio/admin-tools:latest
+    command:
+      [
+        "temporal",
+        "server",
+        "start-dev",
+        "--ip",
+        "0.0.0.0",
+        "--ui-ip",
+        "0.0.0.0",
+        "-f",
+        "/var/temporal/temporal.sqlite",
+      ]
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    volumes:
+      - ./temporal-data:/var/temporal
+
+  api:
+    build:
+      context: ../..
+      dockerfile: examples/fastapi-host/Dockerfile.example
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TB_EXECUTOR_MODE=temporal
+    depends_on:
+      - redis
+      - temporal
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: examples/fastapi-host/Dockerfile.example
+    command: ["python", "-m", "app.temporal_worker"]
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - TEMPORAL_ADDRESS=temporal:7233
+    depends_on:
+      - redis
+      - temporal
+      - api

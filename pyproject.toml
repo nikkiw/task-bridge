@@ -1,0 +1,23 @@
+[project]
+name = "taskbridge-repo-tools"
+version = "0.1.0"
+description = "Repository-level tooling for TaskBridge documentation and checks."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+docs = [
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.25.0",
+    "pymdown-extensions>=10.0.0",
+]
+dev = [
+    "jsonschema>=4.23.0",
+    "pyyaml>=6.0.2",
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

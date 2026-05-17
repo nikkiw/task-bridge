@@ -1,0 +1,45 @@
+# IDE and OS
+.DS_Store
+.idea/
+.vscode/
+
+# Git
+.git
+.github
+.worktrees
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.coverage
+.mypy_cache/
+.venv/
+build/
+dist/
+
+# Android (Very large, not needed for backend build)
+android/
+
+# Documentation and site
+docs/
+site/
+mkdocs.yml
+
+# Repository specific
+scripts/
+# protocol/ # Keep if used by backend, but usually it's for reference
+
+# Don't ignore these as they are needed for 'uv sync' of local packages
+# !adapters/
+# !backend/
+# !examples/fastapi-host/
+# !pyproject.toml
+# !uv.lock
+
+# However, we can ignore other examples to save space
+examples/01-minimal-greeter/
+examples/docker/
+examples/android-integration/

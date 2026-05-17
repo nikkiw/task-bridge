@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskClientAction",
+  "description": "Client command submitted to answer or unlock a suspended task.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "clientActionId",
+    "suspendId",
+    "actionType"
+  ],
+  "properties": {
+    "clientActionId": {
+      "type": "string"
+    },
+    "suspendId": {
+      "type": "string"
+    },
+    "actionType": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

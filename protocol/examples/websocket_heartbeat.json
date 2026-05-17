@@ -1,0 +1,5 @@
+{
+  "type": "HEARTBEAT",
+  "taskId": "task_123",
+  "live": true
+}

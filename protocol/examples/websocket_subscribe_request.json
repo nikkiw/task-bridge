@@ -1,0 +1,5 @@
+{
+  "action": "subscribe",
+  "taskId": "task_123",
+  "lastEventId": "4"
+}

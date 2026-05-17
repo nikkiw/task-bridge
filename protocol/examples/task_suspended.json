@@ -1,0 +1,19 @@
+{
+  "type": "TASK_SUSPENDED",
+  "taskId": "task-1",
+  "eventId": "4-0",
+  "createdAt": "2026-05-05T12:00:03Z",
+  "payload": {
+    "suspendId": "550e8400-e29b-41d4-a716-446655440000",
+    "kind": "USER_ACTION_REQUIRED",
+    "reasonCode": "clarification_required",
+    "allowedActions": ["submit_form"],
+    "schemaVersion": 1,
+    "interaction": {
+      "question": "Continue processing?"
+    },
+    "uiHints": {
+      "presentation": "dialog"
+    }
+  }
+}

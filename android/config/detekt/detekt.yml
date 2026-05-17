@@ -1,0 +1,39 @@
+comments:
+  active: true
+  excludes: ['**/sample/**', '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**']
+  UndocumentedPublicClass:
+    active: true
+    searchInNestedClass: true
+    searchInInnerClass: true
+    searchInInnerObject: true
+    searchInInnerInterface: true
+  UndocumentedPublicFunction:
+    active: true
+  UndocumentedPublicProperty:
+    active: true
+
+complexity:
+  active: true
+  excludes: ['**/sample/**']
+  LongMethod:
+    threshold: 100
+  NestedBlockDepth:
+    threshold: 6
+
+naming:
+  active: true
+  excludes: ['**/sample/**']
+  FunctionNaming:
+    ignoreAnnotated:
+      - Composable
+
+exceptions:
+  TooGenericExceptionCaught:
+    excludes:
+      - "**/sample/**"
+
+style:
+  active: true
+  excludes: ['**/sample/**', '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**']
+  MaxLineLength:
+    maxLineLength: 140

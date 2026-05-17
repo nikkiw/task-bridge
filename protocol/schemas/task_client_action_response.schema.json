@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskClientActionResponse",
+  "description": "Transport acknowledgement for a submitted client action.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "taskId",
+    "suspendId",
+    "clientActionId",
+    "status"
+  ],
+  "properties": {
+    "taskId": {
+      "type": "string"
+    },
+    "suspendId": {
+      "type": "string"
+    },
+    "clientActionId": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ACCEPTED",
+        "DEDUPLICATED",
+        "REJECTED_ALREADY_RESOLVED",
+        "REJECTED_EXPIRED"
+      ]
+    }
+  }
+}

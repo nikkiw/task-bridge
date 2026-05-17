@@ -1,0 +1,30 @@
+{
+  "taskId": "task_123",
+  "events": [
+    {
+      "type": "TASK_PROGRESS",
+      "taskId": "task_123",
+      "eventId": "3",
+      "createdAt": "2026-05-04T12:00:10Z",
+      "payload": {
+        "progress": 60,
+        "stage": "model_inference",
+        "message": "Running inference"
+      }
+    },
+    {
+      "type": "TASK_COMPLETED",
+      "taskId": "task_123",
+      "eventId": "4",
+      "createdAt": "2026-05-04T12:00:15Z",
+      "payload": {
+        "result": {
+          "label": "quartz",
+          "confidence": 0.82
+        }
+      }
+    }
+  ],
+  "nextAfterEventId": "4",
+  "hasMore": false
+}

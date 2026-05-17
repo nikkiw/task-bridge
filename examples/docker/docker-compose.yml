@@ -1,0 +1,83 @@
+services:
+  temporal:
+    image: temporalio/admin-tools:latest
+    command:
+      [
+        "temporal",
+        "server",
+        "start-dev",
+        "--ip",
+        "0.0.0.0",
+        "--ui-ip",
+        "0.0.0.0",
+        "-f",
+        "/var/temporal/temporal.sqlite",
+      ]
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    volumes:
+      - ./temporal-data:/var/temporal
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ../backend/taskbridge-fastapi
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+      # Host apps can override observability hooks:
+      # - get_metrics_sink
+      # - get_readiness_probe (CompositeReadinessProbe)
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    # Execution adapters (Temporal, Celery, etc.) run in the host app or a
+    # dedicated compose profile — see docs/executor-integration.md.
+
+  fastapi-host:
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm
+    working_dir: /workspace
+    command: sh -lc "cd examples/fastapi-host && uv sync --group dev && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    environment:
+      - TB_EXECUTOR_MODE=temporal
+      - REDIS_URL=redis://redis:6379/0
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=taskbridge-demo
+    volumes:
+      - ../:/workspace
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    profiles: ["demo-all"]
+
+  temporal-worker:
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm
+    working_dir: /workspace
+    command: sh -lc "cd examples/fastapi-host && uv sync --group dev && uv run python -m app.temporal_worker"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=taskbridge-demo
+    volumes:
+      - ../:/workspace
+    depends_on:
+      temporal:
+        condition: service_started
+    profiles: ["demo-all"]

@@ -1,0 +1,12 @@
+{
+  "type": "TASK_COMPLETED",
+  "taskId": "task_123",
+  "eventId": "10",
+  "createdAt": "2026-05-04T12:01:00Z",
+  "payload": {
+    "result": {
+      "name": "Quartz",
+      "confidence": 0.82
+    }
+  }
+}

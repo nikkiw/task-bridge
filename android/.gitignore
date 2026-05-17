@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+**/build/
+!**/src/**/build/
+
+# Local configuration (paths, secrets — never commit)
+local.properties
+*.iml
+
+# IDE / Android Studio / IntelliJ
+.idea/
+*.ipr
+*.iws
+.cxx/
+
+# AGP / external native / CMake outputs (paths vary by plugin version)
+.externalNativeBuild/
+**/captures/
+
+# Logs / profiling
+*.log
+*.hprof
+
+# OS
+.DS_Store
+
+# Kotlin compiler sessions (optional noise)
+.kotlin/
+
+# AI artifacts
+.artifacts
+/android/

@@ -1,0 +1,30 @@
+name: protocol-ci
+
+on:
+  pull_request:
+    paths:
+      - "protocol/**"
+      - ".github/workflows/protocol-ci.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "protocol/**"
+      - ".github/workflows/protocol-ci.yml"
+
+jobs:
+  protocol-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install validator dependencies
+        run: python -m pip install --upgrade pip jsonschema pyyaml
+
+      - name: Validate protocol contracts
+        run: python protocol/validate_protocol.py

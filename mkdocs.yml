@@ -1,0 +1,72 @@
+site_name: TaskBridge
+site_description: Reliable AI Task Streaming library for Android and FastAPI.
+docs_dir: docs
+site_dir: site
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - backend/taskbridge-fastapi
+            - backend/adapters/temporal
+          options:
+            show_root_heading: true
+            show_source: false
+            heading_level: 2
+
+nav:
+  - Overview: index.md
+  - Getting Started: getting-started.md
+  - Android:
+      - Overview: android/index.md
+      - API Reference: reference/android.md
+  - Backend:
+      - Overview: backend/index.md
+      - Python API: reference/backend.md
+      - OpenAPI Reference: reference/backend-api/index.html
+  - Protocol: protocol/index.md
+  - Adapters:
+      - Overview: adapters/index.md
+      - Python API: reference/adapters.md
+  - Examples: examples/index.md
+  - Architecture:
+      - Overview: architecture/index.md
+      - Executor Integration: executor-integration.md
+      - Security Integration: security-integration.md
+      - Observability and Ops: observability-ops.md
+  - Documentation: documentation/index.md
+  - Contributing: contributing/index.md
+  - ADR:
+      - Overview: adr/index.md
+      - ADR 0001 Backend Stack: adr/0001-backend-stack.md
+      - ADR 0002 Android Networking: adr/0002-android-networking.md
+      - ADR 0003 Streaming Protocol: adr/0003-streaming-protocol.md
+      - ADR 0004 Backend Library Shape: adr/0004-backend-library-shape.md
+      - ADR 0005 Android Toolchain and Build Quality: adr/0005-android-toolchain-build-quality.md
+      - ADR 0006 Backend Transport Runtime Boundary: adr/0006-backend-transport-runtime-boundary.md
+
+repo_name: task-bridge
+edit_uri: ""

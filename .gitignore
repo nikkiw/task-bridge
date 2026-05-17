@@ -1,0 +1,44 @@
+.DS_Store
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.iml
+
+# Worktrees
+.worktrees/
+worktrees/
+conductor/
+
+# Logs / temp
+*.log
+tmp/
+.tmp/
+
+# Python
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+/site/
+/docs/reference/android-ref/
+/docs/reference/backend-api/
+/docs/reference/schemas/
+dist/
+build/
+*.egg-info/
+
+# Android / Gradle
+.gradle/
+local.properties
+captures/
+out/
+**/build/
+# build-logic Kotlin copy-to-bin (IDE / tooling)
+android/build-logic/bin/
+examples/fastapi-host/temporal-data/

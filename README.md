@@ -11,12 +11,11 @@ TaskBridge provides a reliable infrastructure layer for long-running AI tasks. I
 - `android/`: Android Kotlin library and samples.
 - `backend/`: FastAPI backend implementation and worker stubs.
 - `protocol/`: Shared API contracts (OpenAPI, JSON Schemas).
-- `adapters/`: Future publishable integration packages for execution backends.
+- `backend/adapters/`: Publishable integration packages for backend execution runtimes.
 - `examples/`: Runnable **consumer** examples (see [`examples/README.md`](examples/README.md)).
   - [`examples/fastapi-host/`](examples/fastapi-host/README.md) — minimal FastAPI host wiring `taskbridge-fastapi`.
   - [`examples/android-integration/`](examples/android-integration/README.md) — run `android/sample` against that host.
 - `docs/`: Roadmap, ADRs, plans, and contributor-facing process notes.
-- `.ai/`: Early architectural notes kept for internal drafting.
 
 ## Core Features
 
@@ -53,7 +52,7 @@ Publishable packages:
 - `backend/taskbridge-fastapi`
 - `android/taskbridge-core`
 - `android/taskbridge-transport-okhttp`
-- future adapter packages under `adapters/`
+- future adapter packages under `backend/adapters/`
 
 Repository support layers:
 
@@ -63,7 +62,7 @@ Repository support layers:
 
 ## Documentation
 
-Repository documentation now has a MkDocs site at `docs/site/` with generated API reference.
+Repository documentation now has a MkDocs site sourced directly from `docs/` with generated API reference.
 
 Primary commands:
 
@@ -71,16 +70,14 @@ Primary commands:
 - `uv run python scripts/docs_prepare.py`
 - `uv run mkdocs serve`
 
-For `uvx`, strict build, Dokka staging behavior, and GitHub Pages workflow, use the canonical guide at `docs/site/documentation/index.md`.
+For `uvx`, strict build, Dokka staging behavior, and GitHub Pages workflow, use the canonical guide at `docs/documentation/index.md`.
 
 Source material still lives in the repository:
 
-- [.ai/ARCHITECTURE.md](.ai/ARCHITECTURE.md) for earlier deep-dive notes
-- [docs/ROADMAP.md](docs/ROADMAP.md) for development phases and backlog
-- [docs/plans/README.md](docs/plans/README.md) for internal execution tracking
+- [docs/architecture/index.md](docs/architecture/index.md) for the architecture overview
 - [protocol/README.md](protocol/README.md) for wire-level compatibility
 - [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance
-- [docs/site/documentation/index.md](docs/site/documentation/index.md) for docs generation and maintenance workflow
+- [docs/documentation/index.md](docs/documentation/index.md) for docs generation and maintenance workflow
 
 For isolated parallel work, the repository convention is to use git worktrees under `.worktrees/`.
 
@@ -94,4 +91,4 @@ From repository root:
 - Android unit checks:
   - `cd android && ./gradlew test`
 - Protocol contract checks:
-  - `python protocol/validate_protocol.py`
+  - `uv run python protocol/validate_protocol.py`

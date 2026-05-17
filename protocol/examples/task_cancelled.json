@@ -1,0 +1,10 @@
+{
+  "type": "TASK_CANCELLED",
+  "taskId": "task_123",
+  "eventId": "7",
+  "createdAt": "2026-05-04T12:00:42Z",
+  "payload": {
+    "reason": "cancelled_by_user",
+    "message": "Task cancelled by the client"
+  }
+}
