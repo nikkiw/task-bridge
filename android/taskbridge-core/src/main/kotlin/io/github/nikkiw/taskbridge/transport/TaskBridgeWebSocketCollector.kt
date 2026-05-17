@@ -278,7 +278,11 @@ private fun taskBridgeWebSocketListener(
 
         override fun onOpen(session: TaskBridgeWebSocketSession) {
             webSocketSession = session
-            subscribeJson(session)
             opened.complete(Unit)
+            try {
+                subscribeJson(session)
+            } catch (t: Throwable) {
+                signalStreamEnd(t)
+            }
         }
     }
