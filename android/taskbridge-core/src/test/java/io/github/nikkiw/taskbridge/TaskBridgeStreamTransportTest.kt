@@ -26,12 +26,18 @@ import io.github.nikkiw.taskbridge.policy.DefaultTaskBridgeFailureClassifier
 import io.github.nikkiw.taskbridge.policy.ExponentialBackoffTaskBridgeRetryPolicy
 import io.github.nikkiw.taskbridge.transport.FakeTaskBridgeHttpApi
 import io.github.nikkiw.taskbridge.transport.FallbackStrategy
+import io.github.nikkiw.taskbridge.transport.SseSession
+import io.github.nikkiw.taskbridge.transport.SseSessionFactory
 import io.github.nikkiw.taskbridge.transport.TaskBridgeCheckpointBinding
+import io.github.nikkiw.taskbridge.transport.TaskBridgeSseListener
 import io.github.nikkiw.taskbridge.transport.TaskBridgeStreamTransport
 import io.github.nikkiw.taskbridge.transport.TaskBridgeStreamTransportConfig
 import io.github.nikkiw.taskbridge.transport.TaskBridgeStreamTransportDeps
 import io.github.nikkiw.taskbridge.transport.TaskBridgeStreamTransportOptions
 import io.github.nikkiw.taskbridge.transport.TaskBridgeTransportEventListener
+import io.github.nikkiw.taskbridge.transport.TaskBridgeWebSocketListener
+import io.github.nikkiw.taskbridge.transport.TaskBridgeWebSocketSession
+import io.github.nikkiw.taskbridge.transport.WebSocketSessionFactory
 import io.github.nikkiw.taskbridge.transport.asPollEventsClient
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -375,6 +381,95 @@ class TaskBridgeStreamTransportTest {
                                         WsFrame.Failure(IOException("ws down")),
                                     ),
                                 ),
+                            sseSessionFactory = sseFactory,
+                            routeResolver = TestRouteResolver(),
+                            failureClassifier = DefaultTaskBridgeFailureClassifier(),
+                            retryPolicy = ExponentialBackoffTaskBridgeRetryPolicy(),
+                        ),
+                    checkpoint =
+                        TaskBridgeCheckpointBinding(
+                            store = InMemoryTaskBridgeCheckpointStore(),
+                            keyFactory = { ctx: TestContext, tid: String -> "${ctx.id}-$tid" },
+                        ),
+                    options =
+                        TaskBridgeStreamTransportOptions(
+                            streamConfig = testStreamTransportConfig(),
+                            eventListener = null,
+                            json = json,
+                            dispatcher = UnconfinedTestDispatcher(testScheduler),
+                        ),
+                )
+
+            val events = transport.observeTaskEvents(taskId).toList()
+
+            assertEquals(listOf("1-0", "2-0"), events.map { it.eventId })
+            assertEquals(listOf("1-0"), sseFactory.openedLastEventIds)
+        }
+
+    @Test
+    fun `websocket failure during subscribe still preserves delivered watermark for sse fallback`() =
+        runTest {
+            val json = Json { ignoreUnknownKeys = true }
+            val testContext = TestContext(id = 14)
+            val taskId = "task-ws-subscribe-race"
+            val sseFactory =
+                FakeSseSessionFactory<TestContext>(
+                    script =
+                        listOf(
+                            SseFrame.Open,
+                            SseFrame.Event(
+                                id = "2-0",
+                                eventType = "message",
+                                data =
+                                    """
+                                    {"type":"TASK_COMPLETED","taskId":"$taskId","eventId":"2-0","createdAt":"2026-05-05T12:00:02Z","payload":{"result":{"ok":true}}}
+                                    """.trimIndent(),
+                            ),
+                            SseFrame.Closed,
+                        ),
+                )
+
+            val transport =
+                TaskBridgeStreamTransport(
+                    baseUrl = "http://example.com/",
+                    context = testContext,
+                    deps =
+                        TaskBridgeStreamTransportDeps(
+                            pollEventsClient = { _, _, _, _, _ -> error("poll should not run") },
+                            webSocketFactory =
+                                object : WebSocketSessionFactory<TestContext> {
+                                    override suspend fun open(
+                                        context: TestContext,
+                                        url: String,
+                                        listener: TaskBridgeWebSocketListener,
+                                    ): TaskBridgeWebSocketSession {
+                                        val session =
+                                            object : TaskBridgeWebSocketSession {
+                                                private var handled = false
+
+                                                override fun send(text: String): Boolean {
+                                                    if (handled) return true
+                                                    handled = true
+                                                    listener.onMessage(
+                                                        """
+                                                        {"type":"TASK_PROGRESS","taskId":"$taskId","eventId":"1-0","createdAt":"2026-05-05T12:00:00Z","payload":{}}
+                                                        """.trimIndent(),
+                                                    )
+                                                    listener.onFailure(IOException("ws down"))
+                                                    return true
+                                                }
+
+                                                override fun close(
+                                                    code: Int,
+                                                    reason: String?,
+                                                ): Boolean = true
+
+                                                override fun cancel() = Unit
+                                            }
+                                        listener.onOpen(session)
+                                        return session
+                                    }
+                                },
                             sseSessionFactory = sseFactory,
                             routeResolver = TestRouteResolver(),
                             failureClassifier = DefaultTaskBridgeFailureClassifier(),
