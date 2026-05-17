@@ -2,9 +2,9 @@ name: android-ci
 
 on:
   pull_request:
-    paths:
-      - "android/**"
-      - ".github/workflows/android-ci.yml"
+    # Removed 'paths' filter here so the workflow triggers on EVERY pull request.
+    # This allows the job to report a 'success' status to GitHub (unblocking the merge)
+    # even when Android files were not modified.
   push:
     branches: ["main"]
     paths:
@@ -21,17 +21,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Evaluate which files have been changed in the PR
+      - name: Check changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            android_code:
+              - 'android/**'
+              - '.github/workflows/android-ci.yml'
+
+      # All subsequent steps will ONLY run if 'android_code' evaluated to 'true'
       - name: Setup Java
+        if: steps.filter.outputs.android_code == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Setup Android SDK
+        if: steps.filter.outputs.android_code == 'true'
         uses: android-actions/setup-android@v3
 
       - name: Setup Gradle
+        if: steps.filter.outputs.android_code == 'true'
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run taskbridge-android unit tests
+        if: steps.filter.outputs.android_code == 'true'
         run: ./gradlew test
