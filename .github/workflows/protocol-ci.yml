@@ -2,9 +2,9 @@ name: protocol-ci
 
 on:
   pull_request:
-    paths:
-      - "protocol/**"
-      - ".github/workflows/protocol-ci.yml"
+    # Removed 'paths' filter here so the workflow triggers on EVERY pull request.
+    # This allows the job to report a 'success' status to GitHub (unblocking the merge)
+    # even when protocol files were not modified.
   push:
     branches: ["main"]
     paths:
@@ -18,13 +18,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Evaluate which files have been changed in the PR
+      - name: Check changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            protocol_code:
+              - 'protocol/**'
+              - '.github/workflows/protocol-ci.yml'
+
+      # All subsequent steps will ONLY run if 'protocol_code' evaluated to 'true'
       - name: Setup Python
+        if: steps.filter.outputs.protocol_code == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install validator dependencies
+        if: steps.filter.outputs.protocol_code == 'true'
         run: python -m pip install --upgrade pip jsonschema pyyaml
 
       - name: Validate protocol contracts
+        if: steps.filter.outputs.protocol_code == 'true'
         run: python protocol/validate_protocol.py

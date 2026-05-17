@@ -2,9 +2,9 @@ name: temporal-adapter-ci
 
 on:
   pull_request:
-    paths:
-      - "backend/adapters/temporal/**"
-      - ".github/workflows/temporal-adapter-ci.yml"
+    # Removed 'paths' filter here so the workflow triggers on EVERY pull request.
+    # This allows the job to report a 'success' status to GitHub (unblocking the merge)
+    # even when temporal adapter files were not modified.
   push:
     branches: ["main"]
     paths:
@@ -21,20 +21,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Evaluate which files have been changed in the PR
+      - name: Check changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            temporal_code:
+              - 'backend/adapters/temporal/**'
+              - '.github/workflows/temporal-adapter-ci.yml'
+
+      # All subsequent steps will ONLY run if 'temporal_code' evaluated to 'true'
       - name: Setup uv
+        if: steps.filter.outputs.temporal_code == 'true'
         uses: astral-sh/setup-uv@v5
 
       - name: Setup Python
+        if: steps.filter.outputs.temporal_code == 'true'
         run: uv python install 3.11
 
       - name: Sync dependencies
+        if: steps.filter.outputs.temporal_code == 'true'
         run: uv sync --group dev
 
       - name: Ruff check
+        if: steps.filter.outputs.temporal_code == 'true'
         run: uv run ruff check
 
       - name: Ruff format check
+        if: steps.filter.outputs.temporal_code == 'true'
         run: uv run ruff format --check
 
       - name: Pytest
+        if: steps.filter.outputs.temporal_code == 'true'
         run: uv run pytest
