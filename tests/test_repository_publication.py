@@ -25,7 +25,7 @@ def test_public_docs_do_not_reference_internal_or_stale_paths() -> None:
     files = [
         "README.md",
         "CONTRIBUTING.md",
-        ".github/README.md",
+        ".github/ABOUT.md",
         "examples/README.md",
         "docs/index.md",
         "docs/getting-started.md",
@@ -49,3 +49,42 @@ def test_workflows_target_current_branch_and_repo_layout() -> None:
     assert '"adapters/**"' not in workflow_contents
     assert '"adapters/temporal/**"' not in workflow_contents
     assert "working-directory: adapters/temporal" not in workflow_contents
+
+
+def test_release_workflow_uses_current_publish_contract() -> None:
+    release_workflow = read(".github/workflows/publish-release.yml")
+
+    assert "android-v*" in release_workflow
+    assert "python-v*" in release_workflow
+    assert "python-*-v*" in release_workflow
+    assert "publishAllPublicationsToOSSRHRepository" in release_workflow
+    assert "ossrh-staging-api.central.sonatype.com" in release_workflow
+    assert "manual/upload/defaultRepository/io.github.nikkiw" in release_workflow
+    assert "publishing_type=automatic" in release_workflow
+
+
+def test_release_smoke_workflow_covers_all_publishable_packages() -> None:
+    smoke_workflow = read(".github/workflows/release-smoke.yml")
+
+    assert ":taskbridge-core:publishReleasePublicationToMavenLocal" in smoke_workflow
+    assert ":taskbridge-transport-okhttp:publishReleasePublicationToMavenLocal" in smoke_workflow
+    assert "backend/taskbridge-fastapi" in smoke_workflow
+    assert "backend/adapters/temporal" in smoke_workflow
+
+
+def test_publication_docs_match_current_release_flow() -> None:
+    publication_docs = "\n".join(
+        [
+            read(".github/ABOUT.md"),
+            read("docs/contributing/publication.md"),
+        ]
+    )
+
+    assert "android-vX.Y.Z" in publication_docs
+    assert "python-vX.Y.Z" in publication_docs
+    assert "python-temporal-vX.Y.Z" in publication_docs
+    assert "Central Portal" in publication_docs
+    assert "Portal token" in publication_docs
+    assert "pypi-v*" not in publication_docs
+    assert "maven-v*" not in publication_docs
+    assert "Sonatype Jira username" not in publication_docs

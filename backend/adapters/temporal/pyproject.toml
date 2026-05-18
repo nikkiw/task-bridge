@@ -1,13 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "taskbridge-temporal-adapter"
 version = "0.1.0"
 description = "Temporal adapter for taskbridge-fastapi TaskExecutor contract"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Nikolay Vlasov", email = "nikolayv_dev@outlook.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
-    "taskbridge-fastapi",
+    "taskbridge-fastapi>=0.1.0",
     "temporalio>=1.8.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/nikkiw/task-bridge"
+Repository = "https://github.com/nikkiw/task-bridge.git"
+Documentation = "https://nikkiw.github.io/task-bridge/"
+
+[tool.hatch.build.targets.wheel]
+packages = ["taskbridge_temporal"]
 
 [tool.uv.sources]
 taskbridge-fastapi = { path = "../../taskbridge-fastapi", editable = true }

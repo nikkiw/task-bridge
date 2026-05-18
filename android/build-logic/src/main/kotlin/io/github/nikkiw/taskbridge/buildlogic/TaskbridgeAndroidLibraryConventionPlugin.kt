@@ -39,6 +39,12 @@ class TaskbridgeAndroidLibraryConventionPlugin : Plugin<Project> {
                 abortOnError = true
                 warningsAsErrors = false
             }
+            publishing {
+                singleVariant("release") {
+                    withSourcesJar()
+                    withJavadocJar()
+                }
+            }
         }
 
         target.tasks.withType<KotlinCompilationTask<*>>().configureEach {
