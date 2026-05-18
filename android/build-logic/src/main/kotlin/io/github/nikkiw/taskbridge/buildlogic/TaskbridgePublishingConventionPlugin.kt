@@ -7,17 +7,27 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.get
+import org.gradle.plugins.signing.SigningExtension
+
+private fun Project.stringProperty(vararg names: String): String? =
+    names
+        .asSequence()
+        .mapNotNull { name -> findProperty(name)?.toString()?.takeIf(String::isNotBlank) }
+        .firstOrNull()
 
 class TaskbridgePublishingConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         target.pluginManager.apply("maven-publish")
+        target.pluginManager.apply("signing")
+
+        target.group = "io.github.nikkiw.taskbridge"
+        target.version = target.findProperty("VERSION_NAME") ?: "0.1.0-SNAPSHOT"
 
         target.extensions.configure<PublishingExtension> {
             publications {
                 create<MavenPublication>("release") {
                     artifactId = target.name
-                    // This will be configured further when publication is needed
-                    // For now, we set up the metadata
 
                     pom {
                         name.set(target.name)
@@ -33,6 +43,7 @@ class TaskbridgePublishingConventionPlugin : Plugin<Project> {
                             developer {
                                 id.set("nikkiw")
                                 name.set("Nikolay Vlasov")
+                                email.set("nikolayv_dev@outlook.com")
                                 url.set("https://github.com/nikkiw")
                             }
                         }
@@ -43,6 +54,32 @@ class TaskbridgePublishingConventionPlugin : Plugin<Project> {
                         }
                     }
                 }
+            }
+
+            repositories {
+                maven {
+                    name = "OSSRH"
+                    // Use the Central Portal OSSRH compatibility API so built-in maven-publish
+                    // continues to work without depending on a third-party Gradle plugin.
+                    val releaseRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+                    val snapshotsRepoUrl = "https://central.sonatype.com/repository/maven-snapshots/"
+                    url = target.uri(if (target.version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releaseRepoUrl)
+
+                    credentials {
+                        username = target.stringProperty("ossrhUsername")
+                        password = target.stringProperty("ossrhPassword")
+                    }
+                }
+            }
+        }
+
+        target.extensions.configure<SigningExtension> {
+            val signingKey = target.stringProperty("signingKey")
+            val signingPassword = target.stringProperty("signingPassword")
+            if (signingKey != null && signingPassword != null) {
+                @Suppress("UnstableApiUsage")
+                useInMemoryPgpKeys(signingKey, signingPassword)
+                sign(target.extensions.findByType<PublishingExtension>()?.publications?.get("release"))
             }
         }
 

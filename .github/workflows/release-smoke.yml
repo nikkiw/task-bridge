@@ -1,0 +1,93 @@
+name: release-smoke
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - "backend/taskbridge-fastapi/**"
+      - "backend/adapters/temporal/**"
+      - ".github/workflows/publish-release.yml"
+      - ".github/workflows/release-smoke.yml"
+      - "docs/contributing/publication.md"
+      - ".github/ABOUT.md"
+      - "tests/test_repository_publication.py"
+  push:
+    branches: ["main"]
+    paths:
+      - "android/**"
+      - "backend/taskbridge-fastapi/**"
+      - "backend/adapters/temporal/**"
+      - ".github/workflows/publish-release.yml"
+      - ".github/workflows/release-smoke.yml"
+      - "docs/contributing/publication.md"
+      - ".github/ABOUT.md"
+      - "tests/test_repository_publication.py"
+  workflow_dispatch:
+
+jobs:
+  android-release-smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Publish Android artifacts to Maven local
+        run: |
+          ./gradlew \
+            :taskbridge-core:publishReleasePublicationToMavenLocal \
+            :taskbridge-transport-okhttp:publishReleasePublicationToMavenLocal \
+            -PVERSION_NAME=0.0.0-SMOKE
+
+  python-release-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package_dir:
+          - backend/taskbridge-fastapi
+          - backend/adapters/temporal
+    defaults:
+      run:
+        working-directory: ${{ matrix.package_dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build Python package
+        run: uv build
+
+  repository-publication-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Run repository publication tests
+        run: uv run pytest tests/test_repository_publication.py -q
