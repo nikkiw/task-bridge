@@ -123,9 +123,17 @@ jobs:
 
       - name: Build and Publish to PyPI
         run: |
-          cd "${{ steps.pkg.outputs.dir }}"
           VERSION=${{ steps.pkg.outputs.version }}
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+          if [[ "${GITHUB_REF_NAME}" =~ ^python-v ]]; then
+            COMPONENT="backend-fastapi"
+          elif [[ "${GITHUB_REF_NAME}" =~ ^python-temporal-v ]]; then
+            COMPONENT="temporal-adapter"
+          else
+            echo "::error::Unsupported tag format: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+          uv run python scripts/release_tools.py set-package-version --component "${COMPONENT}" --version "${VERSION}"
+          cd "${{ steps.pkg.outputs.dir }}"
           uv build
           uv publish --token ${{ secrets.PYPI_API_TOKEN }}
 

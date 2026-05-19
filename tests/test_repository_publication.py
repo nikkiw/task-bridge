@@ -58,6 +58,7 @@ def test_release_workflow_uses_current_publish_contract() -> None:
     assert "python-v*" in release_workflow
     assert "python-*-v*" in release_workflow
     assert "fetch-depth: 0" in release_workflow
+    assert "set-package-version" in release_workflow
     assert "Verify changelog section exists for tag" in release_workflow
     assert "gh release create" in release_workflow or "gh release edit" in release_workflow
     assert "publishAllPublicationsToOSSRHRepository" in release_workflow
@@ -129,6 +130,8 @@ def test_publication_docs_match_current_release_flow() -> None:
     assert "squash merge" in publication_docs
     assert "prepare-release" in publication_docs
     assert "GitHub Release" in publication_docs
+    assert "0.0.0.dev0" in publication_docs
+    assert "published version comes from the tag" in publication_docs
     assert "package changelog" in publication_docs or "package-level changelog" in publication_docs
     assert "Central Portal" in publication_docs
     assert "Portal token" in publication_docs
@@ -173,3 +176,11 @@ def test_android_installation_examples_use_current_group_id() -> None:
     assert "io.github.nikkiw.taskbridge:taskbridge-transport-okhttp" in installation_docs
     assert "io.github.nikkiw:taskbridge-core" not in installation_docs
     assert "io.github.nikkiw:taskbridge-transport-okhttp" not in installation_docs
+
+
+def test_python_package_versions_use_dev_placeholders_in_repo() -> None:
+    fastapi_pyproject = read("backend/taskbridge-fastapi/pyproject.toml")
+    temporal_pyproject = read("backend/adapters/temporal/pyproject.toml")
+
+    assert 'version = "0.0.0.dev0"' in fastapi_pyproject
+    assert 'version = "0.0.0.dev0"' in temporal_pyproject

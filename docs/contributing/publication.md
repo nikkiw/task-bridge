@@ -17,6 +17,8 @@ Release history is tracked at the package level:
 
 The root `CHANGELOG.md` is only an index.
 
+For Python packages, the committed `pyproject.toml` version stays at placeholder `0.0.0.dev0`. The published version comes from the tag in CI, so routine release preparation does not require committing version bumps back to `main`.
+
 ## Release Contract
 
 Release-bearing pull requests must use Conventional Commits and squash merge so the final commit on `main` is machine-readable.
@@ -81,6 +83,7 @@ Merge that PR with squash merge.
    git push origin python-v0.1.0
    ```
 2. `publish-release` verifies `backend/taskbridge-fastapi/CHANGELOG.md`, publishes to PyPI, and creates or updates the GitHub Release from the same section.
+   The workflow rewrites the package version from `0.0.0.dev0` to the tag version only inside the CI checkout.
 
 #### Temporal Adapter
 1. Create and push the tag:
@@ -89,6 +92,7 @@ Merge that PR with squash merge.
    git push origin python-temporal-v0.1.0
    ```
 2. `publish-release` verifies `backend/adapters/temporal/CHANGELOG.md`, publishes to PyPI, and creates or updates the GitHub Release from the same section.
+   The workflow rewrites the package version from `0.0.0.dev0` to the tag version only inside the CI checkout.
 
 If the relevant package changelog section is missing, publication fails before artifact upload starts.
 
@@ -121,6 +125,8 @@ To build the artifacts locally and verify their content:
 cd backend/taskbridge-fastapi
 uv build
 ```
+
+That local build will use the committed placeholder `0.0.0.dev0`. For an exact release build, run the same version rewrite step locally before `uv build`, or let GitHub Actions do it during tag publication.
 
 The artifacts will be generated in the `dist/` directory.
 

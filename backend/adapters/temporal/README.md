@@ -35,7 +35,7 @@ Important architectural rule:
 - Temporal owns durable workflow internals;
 - TaskBridge owns client-facing event transport and replay semantics.
 
-Release history for this adapter lives in [`backend/adapters/temporal/CHANGELOG.md`](CHANGELOG.md). Use the repository `prepare-release` workflow before pushing a `python-temporal-vX.Y.Z` tag. Release-bearing PR titles and squash titles must follow Conventional Commits such as `feat(temporal)!: ...`.
+Release history for this adapter lives in [`backend/adapters/temporal/CHANGELOG.md`](CHANGELOG.md). The committed `pyproject.toml` version stays at `0.0.0.dev0`; the published version comes from the `python-temporal-vX.Y.Z` tag in CI. Use the repository `prepare-release` workflow before pushing that tag. Release-bearing PR titles and squash titles must follow Conventional Commits such as `feat(temporal)!: ...`.
 
 ## Configuration
 

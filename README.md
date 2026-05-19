@@ -74,6 +74,8 @@ Release history is package-scoped:
 
 The root [`CHANGELOG.md`](CHANGELOG.md) is only an index to those package changelogs.
 
+For Python packages, the committed `pyproject.toml` version is a placeholder `0.0.0.dev0`. The published version comes from the release tag in CI, which avoids routine version-bump merge conflicts.
+
 ## Documentation
 
 Repository documentation is published from the MkDocs source in `docs/` and combines hand-written concept guides with generated API reference.

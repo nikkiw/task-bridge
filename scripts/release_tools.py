@@ -237,6 +237,20 @@ def emit_json(payload: dict[str, object]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
+def set_package_version(pyproject_path: Path, version: str) -> None:
+    content = pyproject_path.read_text(encoding="utf-8")
+    updated, replacements = re.subn(
+        r'^version = ".*"$',
+        f'version = "{version}"',
+        content,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if replacements != 1:
+        raise ReleaseToolError(f"Could not rewrite version in {pyproject_path}")
+    pyproject_path.write_text(updated, encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="TaskBridge release automation helpers")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -281,6 +295,10 @@ def main() -> int:
     update_parser.add_argument("--component", required=True)
     update_parser.add_argument("--version", required=True)
     update_parser.add_argument("--section-file", required=True)
+
+    set_version_parser = subparsers.add_parser("set-package-version")
+    set_version_parser.add_argument("--component", required=True)
+    set_version_parser.add_argument("--version", required=True)
 
     args = parser.parse_args()
 
@@ -350,6 +368,13 @@ def main() -> int:
         updated = update_changelog(existing, version=args.version, new_section=section)
         component.changelog_file.write_text(updated, encoding="utf-8")
         print(component.changelog_path)
+        return 0
+
+    if args.command == "set-package-version":
+        component = component_for_name(args.component)
+        pyproject_path = component.changelog_file.parent / "pyproject.toml"
+        set_package_version(pyproject_path, args.version)
+        print(pyproject_path)
         return 0
 
     raise ReleaseToolError(f"Unsupported command: {args.command}")
