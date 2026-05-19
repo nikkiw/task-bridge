@@ -1,0 +1,114 @@
+name: prepare-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: "Component to prepare"
+        required: true
+        type: choice
+        options:
+          - android
+          - backend-fastapi
+          - temporal-adapter
+      version:
+        description: "Release version in X.Y.Z format"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@git-cliff
+
+      - name: Validate release input
+        env:
+          COMPONENT: ${{ inputs.component }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          uv run python scripts/release_tools.py resolve --component "${COMPONENT}" > component.json
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          component = json.loads(Path("component.json").read_text())
+          version = "${{ inputs.version }}"
+          if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?", version):
+              raise SystemExit(f"Unsupported version: {version}")
+          print(component["component"])
+          PY
+
+      - name: Generate package-scoped release notes with git-cliff
+        env:
+          COMPONENT: ${{ inputs.component }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          CHANGELOG_PATH=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path("component.json").read_text())["changelog_path"])
+          PY
+          )
+          INCLUDE_PATH=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path("component.json").read_text())["include_paths"][0])
+          PY
+          )
+          PREVIOUS_TAG=$(uv run python scripts/release_tools.py previous-tag --component "${COMPONENT}" --version "${VERSION}")
+          CLIFF_ARGS=(--config cliff.toml --unreleased --include-path "${INCLUDE_PATH}")
+          if [[ -n "${PREVIOUS_TAG}" ]]; then
+            CLIFF_ARGS+=(--from "${PREVIOUS_TAG}")
+          fi
+          git-cliff "${CLIFF_ARGS[@]}" > raw-notes.md
+          uv run python scripts/release_tools.py normalize-cliff-notes \
+            --input raw-notes.md \
+            --version "${VERSION}" \
+            --date "$(date -u +%F)" > release-section.md
+          uv run python scripts/release_tools.py update-changelog \
+            --component "${COMPONENT}" \
+            --version "${VERSION}" \
+            --section-file release-section.md
+          test -s "${CHANGELOG_PATH}"
+
+      - name: Ensure root changelog index exists
+        run: |
+          grep -q "android/CHANGELOG.md" CHANGELOG.md
+          grep -q "backend/taskbridge-fastapi/CHANGELOG.md" CHANGELOG.md
+          grep -q "backend/adapters/temporal/CHANGELOG.md" CHANGELOG.md
+
+      - name: Create release preparation pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMPONENT: ${{ inputs.component }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          BRANCH="release/${COMPONENT}-v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+          git add CHANGELOG.md android/CHANGELOG.md backend/taskbridge-fastapi/CHANGELOG.md backend/adapters/temporal/CHANGELOG.md
+          git commit -m "chore(release): prepare ${COMPONENT} v${VERSION}"
+          git push --set-upstream origin "${BRANCH}"
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "chore(release): prepare ${COMPONENT} v${VERSION}" \
+            --body "Prepared package changelog and release notes for ${COMPONENT} v${VERSION}."

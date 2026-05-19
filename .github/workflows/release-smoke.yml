@@ -7,10 +7,19 @@ on:
       - "backend/taskbridge-fastapi/**"
       - "backend/adapters/temporal/**"
       - ".github/workflows/publish-release.yml"
+      - ".github/workflows/release-contract.yml"
+      - ".github/workflows/prepare-release.yml"
       - ".github/workflows/release-smoke.yml"
+      - "scripts/release_tools.py"
+      - "cliff.toml"
+      - "CHANGELOG.md"
+      - "android/CHANGELOG.md"
+      - "backend/taskbridge-fastapi/CHANGELOG.md"
+      - "backend/adapters/temporal/CHANGELOG.md"
       - "docs/contributing/publication.md"
       - ".github/ABOUT.md"
       - "tests/test_repository_publication.py"
+      - "tests/test_release_metadata.py"
   push:
     branches: ["main"]
     paths:
@@ -18,10 +27,19 @@ on:
       - "backend/taskbridge-fastapi/**"
       - "backend/adapters/temporal/**"
       - ".github/workflows/publish-release.yml"
+      - ".github/workflows/release-contract.yml"
+      - ".github/workflows/prepare-release.yml"
       - ".github/workflows/release-smoke.yml"
+      - "scripts/release_tools.py"
+      - "cliff.toml"
+      - "CHANGELOG.md"
+      - "android/CHANGELOG.md"
+      - "backend/taskbridge-fastapi/CHANGELOG.md"
+      - "backend/adapters/temporal/CHANGELOG.md"
       - "docs/contributing/publication.md"
       - ".github/ABOUT.md"
       - "tests/test_repository_publication.py"
+      - "tests/test_release_metadata.py"
   workflow_dispatch:
 
 jobs:
@@ -90,4 +108,4 @@ jobs:
         run: uv python install 3.11
 
       - name: Run repository publication tests
-        run: uv run pytest tests/test_repository_publication.py -q
+        run: uv run pytest tests/test_repository_publication.py tests/test_release_metadata.py -q

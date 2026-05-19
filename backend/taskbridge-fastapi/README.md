@@ -67,6 +67,8 @@ app.include_router(build_ws_router())
 install_http_exception_handlers(app)
 ```
 
+Release history for this package lives in [`backend/taskbridge-fastapi/CHANGELOG.md`](CHANGELOG.md). Use the repository `prepare-release` workflow before pushing a `python-vX.Y.Z` tag. Release-bearing PR titles and squash titles must follow Conventional Commits such as `fix(backend): ...`.
+
 ## Observability and ops
 
 The package includes host-overridable observability hooks:

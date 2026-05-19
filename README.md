@@ -66,6 +66,14 @@ Repository support layers:
 - `docs/` for the docs site and architecture guidance
 - `examples/` for runnable integration setups
 
+Release history is package-scoped:
+
+- `android/CHANGELOG.md`
+- `backend/taskbridge-fastapi/CHANGELOG.md`
+- `backend/adapters/temporal/CHANGELOG.md`
+
+The root [`CHANGELOG.md`](CHANGELOG.md) is only an index to those package changelogs.
+
 ## Documentation
 
 Repository documentation is published from the MkDocs source in `docs/` and combines hand-written concept guides with generated API reference.
@@ -99,6 +107,17 @@ Source material still lives in the repository:
 - [docs/documentation/index.md](docs/documentation/index.md) for docs generation and maintenance workflow
 
 For isolated parallel work, the repository convention is to use git worktrees under `.worktrees/`.
+
+## Release Workflow
+
+TaskBridge keeps the tag-push publication contract, but release preparation is changelog-driven.
+
+- `prepare-release` generates a package changelog section and opens a release prep PR.
+- Maintainers merge that PR with squash merge.
+- Maintainers then push one of `android-vX.Y.Z`, `python-vX.Y.Z`, or `python-temporal-vX.Y.Z`.
+- `publish-release.yml` publishes artifacts and creates or updates the GitHub Release from the package changelog section.
+
+Release-bearing PR titles and squash titles must follow Conventional Commits, for example `feat(android): ...`, `fix(backend): ...`, or `feat(temporal)!: ...`.
 
 ## Validation Commands
 

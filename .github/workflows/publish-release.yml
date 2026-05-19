@@ -3,9 +3,12 @@ name: publish-release
 on:
   push:
     tags:
-      - 'android-v*'
-      - 'python-v*'
-      - 'python-*-v*'
+      - "android-v*"
+      - "python-v*"
+      - "python-*-v*"
+
+permissions:
+  contents: write
 
 jobs:
   publish-android:
@@ -17,6 +20,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare release metadata
+        working-directory: .
+        run: |
+          uv run python scripts/release_tools.py verify-changelog --tag "${GITHUB_REF_NAME}" > release-notes.md
+          uv run python scripts/release_tools.py release-title --tag "${GITHUB_REF_NAME}" > release-title.txt
+
+      - name: Verify changelog section exists for tag
+        working-directory: .
+        run: test -s release-notes.md
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -29,6 +44,11 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Publish Android artifacts to Sonatype compatibility API
         run: |
@@ -51,29 +71,51 @@ jobs:
             --header "Accept: application/json" \
             "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/io.github.nikkiw?publishing_type=automatic"
 
+      - name: Create or update GitHub Release
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE=$(cat release-title.txt)
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release edit "${GITHUB_REF_NAME}" --title "${TITLE}" --notes-file release-notes.md
+          else
+            gh release create "${GITHUB_REF_NAME}" --title "${TITLE}" --notes-file release-notes.md
+          fi
+
   publish-python:
     if: startsWith(github.ref, 'refs/tags/python-')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install uv
+      - name: Setup uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+
+      - name: Prepare release metadata
+        run: |
+          uv run python scripts/release_tools.py verify-changelog --tag "${GITHUB_REF_NAME}" > release-notes.md
+          uv run python scripts/release_tools.py release-title --tag "${GITHUB_REF_NAME}" > release-title.txt
+
+      - name: Verify changelog section exists for tag
+        run: test -s release-notes.md
 
       - name: Determine Package Directory
         id: pkg
         run: |
           if [[ "${GITHUB_REF_NAME}" =~ ^python-v([0-9]+\.[0-9]+\.[0-9]+.*)$ ]]; then
-            echo "dir=backend/taskbridge-fastapi" >> $GITHUB_OUTPUT
-            echo "version=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+            echo "dir=backend/taskbridge-fastapi" >> "$GITHUB_OUTPUT"
+            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
           elif [[ "${GITHUB_REF_NAME}" =~ ^python-([a-z0-9-]+)-v([0-9]+\.[0-9]+\.[0-9]+.*)$ ]]; then
             ADAPTER_NAME="${BASH_REMATCH[1]}"
             VERSION="${BASH_REMATCH[2]}"
-            echo "dir=backend/adapters/${ADAPTER_NAME}" >> $GITHUB_OUTPUT
-            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "dir=backend/adapters/${ADAPTER_NAME}" >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           else
             echo "::error::Unsupported tag format: ${GITHUB_REF_NAME}"
             exit 1
@@ -81,9 +123,19 @@ jobs:
 
       - name: Build and Publish to PyPI
         run: |
-          cd ${{ steps.pkg.outputs.dir }}
+          cd "${{ steps.pkg.outputs.dir }}"
           VERSION=${{ steps.pkg.outputs.version }}
-          # Update version in pyproject.toml before building
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
           uv build
           uv publish --token ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE=$(cat release-title.txt)
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release edit "${GITHUB_REF_NAME}" --title "${TITLE}" --notes-file release-notes.md
+          else
+            gh release create "${GITHUB_REF_NAME}" --title "${TITLE}" --notes-file release-notes.md
+          fi

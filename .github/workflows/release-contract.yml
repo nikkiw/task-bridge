@@ -1,0 +1,66 @@
+name: release-contract
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - "backend/taskbridge-fastapi/**"
+      - "backend/adapters/temporal/**"
+      - ".github/workflows/release-contract.yml"
+      - ".github/workflows/prepare-release.yml"
+      - ".github/workflows/publish-release.yml"
+      - "scripts/release_tools.py"
+      - "cliff.toml"
+      - "CHANGELOG.md"
+      - "android/CHANGELOG.md"
+      - "backend/taskbridge-fastapi/CHANGELOG.md"
+      - "backend/adapters/temporal/CHANGELOG.md"
+      - "docs/contributing/publication.md"
+      - ".github/ABOUT.md"
+  push:
+    branches: ["main"]
+    paths:
+      - "android/**"
+      - "backend/taskbridge-fastapi/**"
+      - "backend/adapters/temporal/**"
+      - ".github/workflows/release-contract.yml"
+      - ".github/workflows/prepare-release.yml"
+      - ".github/workflows/publish-release.yml"
+      - "scripts/release_tools.py"
+      - "cliff.toml"
+      - "CHANGELOG.md"
+      - "android/CHANGELOG.md"
+      - "backend/taskbridge-fastapi/CHANGELOG.md"
+      - "backend/adapters/temporal/CHANGELOG.md"
+      - "docs/contributing/publication.md"
+      - ".github/ABOUT.md"
+
+jobs:
+  validate-release-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Validate Conventional PR title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Release-bearing scopes map to android, backend-fastapi, and temporal-adapter families.
+          uv run python scripts/release_tools.py lint-title --title "${PR_TITLE}"
+
+      - name: Validate release-bearing merge commit
+        if: github.event_name == 'push'
+        env:
+          COMMIT_TITLE: ${{ github.event.head_commit.message }}
+        run: |
+          TITLE=$(printf '%s\n' "${COMMIT_TITLE}" | head -n 1)
+          uv run python scripts/release_tools.py lint-title --title "${TITLE}"

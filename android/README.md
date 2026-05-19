@@ -25,6 +25,8 @@ dependencies {
 
 Check the latest version on [Maven Central](https://central.sonatype.com/search?q=io.github.nikkiw.taskbridge).
 
+Release notes for both Android artifacts live in [`android/CHANGELOG.md`](CHANGELOG.md). Android releases are prepared through the repository `prepare-release` workflow and published when an `android-vX.Y.Z` tag is pushed.
+
 ## Requirements
 
 - `JDK 17`
@@ -47,6 +49,8 @@ The public publication is now modular:
 
 - `io.github.nikkiw.taskbridge:taskbridge-core`
 - `io.github.nikkiw.taskbridge:taskbridge-transport-okhttp`
+
+Release-bearing PR titles and squash titles must follow Conventional Commits such as `feat(android): ...` or `fix(android): ...`.
 
 `taskbridge-core` does not depend on `okhttp`, `okhttp-sse`, or Retrofit in main code.
 `taskbridge-transport-okhttp` is the only transport adapter using OkHttp/WebSocket/SSE/Retrofit wiring.
