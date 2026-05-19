@@ -49,6 +49,10 @@ Hosts are expected to provide only:
 - route path customization
 - domain-specific create-task preprocessing
 
+`HttpRouteSettings` already supports per-endpoint HTTP path overrides. WebSocket
+mounts can now be customized through `WebSocketRouteSettings(websocket_path=...)`
+when a host needs a non-default endpoint such as `/ws/tasks`.
+
 That means host apps should avoid handwritten `StreamingResponse` generators for
 task streaming, `Last-Event-ID` replay loops, SSE heartbeat formatting, and
 transport-specific wait tuning when a TaskBridge helper already covers the case.

@@ -218,6 +218,16 @@ def test_websocket_route_rejects_subscription_when_auth_fails() -> None:
     assert exc_info.value.code == 1008
 
 
+def test_websocket_route_supports_custom_path() -> None:
+    client, _, task_id, _ = build_ws_client(
+        settings=WebSocketRouteSettings(wait_timeout_ms=5, websocket_path="/ws/tasks")
+    )
+
+    with client.websocket_connect("/ws/tasks") as websocket:
+        websocket.send_json({"action": "subscribe", "taskId": task_id})
+        assert websocket.receive_json()["type"] == "SUBSCRIPTION_CONFIRMED"
+
+
 def test_websocket_route_closes_without_ack_for_foreign_task() -> None:
     client, _, task_id, _ = build_ws_client(owner_subject="user-owned-by-someone-else")
 
