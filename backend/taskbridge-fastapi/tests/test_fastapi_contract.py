@@ -11,7 +11,7 @@ from taskbridge.dependencies import (
     get_websocket_subscription_service,
 )
 from taskbridge.routes_http import build_http_router
-from taskbridge.routes_ws import build_ws_router
+from taskbridge.routes_ws import WebSocketRouteSettings, build_ws_router
 
 
 def test_http_router_exposes_expected_paths() -> None:
@@ -55,6 +55,16 @@ def test_websocket_router_exposes_expected_path() -> None:
         if hasattr(dependency.call, "__name__")
     }
     assert "resolve_ws_auth_context" in dependency_names
+
+
+def test_websocket_router_allows_custom_path() -> None:
+    router = build_ws_router(WebSocketRouteSettings(websocket_path="/ws/tasks"))
+    route_map = {
+        route.path: route for route in router.routes if isinstance(route, APIWebSocketRoute)
+    }
+
+    assert "/ws/tasks" in route_map
+    assert "/api/v1/tasks/ws" not in route_map
 
 
 def test_default_dependency_providers_fail_loudly() -> None:

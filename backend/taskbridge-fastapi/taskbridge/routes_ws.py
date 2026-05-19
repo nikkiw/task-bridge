@@ -41,6 +41,7 @@ METRICS_SINK = Depends(get_metrics_sink)
 class WebSocketRouteSettings:
     """Settings for WebSocket routes."""
 
+    websocket_path: str = "/api/v1/tasks/ws"
     replay_batch_size: int = 100
     live_batch_size: int = 100
     wait_timeout_ms: int = 25_000
@@ -63,7 +64,7 @@ def build_ws_router(settings: WebSocketRouteSettings | None = None) -> APIRouter
     ws_settings = actual_settings.stream_runtime.websocket
     router = APIRouter()
 
-    @router.websocket("/api/v1/tasks/ws")
+    @router.websocket(actual_settings.websocket_path)
     async def task_events_ws(
         websocket: WebSocket,
         auth_context: Annotated[AuthContext, Depends(resolve_ws_auth_context)],
