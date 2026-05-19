@@ -17,13 +17,15 @@ Add the following to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.nikkiw:taskbridge-core:VERSION")
+    implementation("io.github.nikkiw.taskbridge:taskbridge-core:VERSION")
     // If you want to use the OkHttp-based transport
-    implementation("io.github.nikkiw:taskbridge-transport-okhttp:VERSION")
+    implementation("io.github.nikkiw.taskbridge:taskbridge-transport-okhttp:VERSION")
 }
 ```
 
-Check the latest version on [Maven Central](https://central.sonatype.com/search?q=io.github.nikkiw).
+Check the latest version on [Maven Central](https://central.sonatype.com/search?q=io.github.nikkiw.taskbridge).
+
+Release notes for both Android artifacts live in [`android/CHANGELOG.md`](CHANGELOG.md). Android releases are prepared through the repository `prepare-release` workflow and published when an `android-vX.Y.Z` tag is pushed.
 
 ## Requirements
 
@@ -45,8 +47,10 @@ Verified with the current modular structure: `taskbridge-core`, `taskbridge-tran
 
 The public publication is now modular:
 
-- `io.github.nikkiw:taskbridge-core`
-- `io.github.nikkiw:taskbridge-transport-okhttp`
+- `io.github.nikkiw.taskbridge:taskbridge-core`
+- `io.github.nikkiw.taskbridge:taskbridge-transport-okhttp`
+
+Release-bearing PR titles and squash titles must follow Conventional Commits such as `feat(android): ...` or `fix(android): ...`.
 
 `taskbridge-core` does not depend on `okhttp`, `okhttp-sse`, or Retrofit in main code.
 `taskbridge-transport-okhttp` is the only transport adapter using OkHttp/WebSocket/SSE/Retrofit wiring.
@@ -177,6 +181,8 @@ if (actionResponse.status == SubmitActionStatus.ACCEPTED) {
 Multipart example:
 
 ```kotlin
+val attachmentBytes = byteArrayOf(1, 2, 3)
+
 val response =
     client.startTaskMultipart(
         clientRequestId = "req-2",
@@ -187,11 +193,19 @@ val response =
             listOf(
                 TaskBridgeMultipartAttachment(
                     fileName = "sample.bin",
-                    content = byteArrayOf(1, 2, 3),
+                    contentType = "application/octet-stream",
+                    content = attachmentBytes,
                 ),
             ),
     )
 ```
+
+Important boundary:
+
+- `TaskBridgeMultipartAttachment` is the public SDK boundary, not `MultipartBody.Part`;
+- the current API accepts attachment content as `ByteArray`;
+- this is appropriate when the app already has the bytes in memory;
+- this is not a streaming upload API for arbitrarily large files.
 
 ## Resilience Model
 
@@ -219,3 +233,4 @@ Recommended run:
 ## Related Documents
 
 - [ADR 0005 — toolchain, Spotless, Detekt, Dokka, sample](../docs/adr/0005-android-toolchain-build-quality.md)
+- [docs/android/index.md](../docs/android/index.md) for the human-readable Android guide

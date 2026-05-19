@@ -30,6 +30,13 @@ Guidance:
 - keep payloads compact and client-facing
 - keep heavy domain state in Temporal workflow storage, not in event stream payloads
 
+Important architectural rule:
+
+- Temporal owns durable workflow internals;
+- TaskBridge owns client-facing event transport and replay semantics.
+
+Release history for this adapter lives in [`backend/adapters/temporal/CHANGELOG.md`](CHANGELOG.md). The committed `pyproject.toml` version stays at `0.0.0.dev0`; the published version comes from the `python-temporal-vX.Y.Z` tag in CI. Use the repository `prepare-release` workflow before pushing that tag. Release-bearing PR titles and squash titles must follow Conventional Commits such as `feat(temporal)!: ...`.
+
 ## Configuration
 
 Use `TemporalExecutorConfig`:
@@ -40,6 +47,24 @@ Use `TemporalExecutorConfig`:
 - `cancellation_mode` (`cancel` or `signal`)
 - `start_timeout_seconds`
 - `workflow_input_mapper` (host-controlled mapper `TaskRecord -> workflow input`)
+
+## Typical integration role
+
+Use this adapter when:
+
+- the host already relies on Temporal for durable orchestration;
+- TaskBridge should remain the transport-facing layer for clients;
+- runtime-specific workflow logic should stay out of backend core.
+
+Do not use the adapter as a place to reimplement backend routes, auth, or replay loops.
+
+## Documentation map
+
+For the concept-level guide, use:
+
+- `../../../docs/adapters/temporal.md`
+- `../../../docs/backend/index.md`
+- `../../../docs/backend/state-and-runtime-boundaries.md`
 
 ## Local checks
 

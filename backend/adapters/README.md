@@ -2,10 +2,7 @@
 
 This directory is reserved for publishable adapter packages that integrate `task-bridge` with external execution or infrastructure systems.
 
-Examples of backend adapter packages:
-
-- `backend/adapters/temporal`
-- `backend/adapters/celery`
+Adapters exist so backend core can stay reusable while execution runtime specifics remain isolated.
 
 Rules:
 
@@ -17,4 +14,24 @@ Rules:
 
 - [`temporal/`](temporal/README.md): `TaskExecutor` implementation backed by Temporal SDK.
 
+## Boundary
+
+Adapters should own:
+
+- runtime client integration;
+- executor bridging;
+- runtime-specific config and mapping;
+- any helper that translates runtime updates into TaskBridge event shapes.
+
+Adapters should not own:
+
+- FastAPI route handling;
+- generic backend auth or ownership policy;
+- replay or transport semantics already defined by backend core.
+
 Repository-level docs site and generation workflow are documented in `../../docs/documentation/index.md`.
+
+For the concept-level docs, use:
+
+- `../../docs/adapters/index.md`
+- `../../docs/adapters/temporal.md`

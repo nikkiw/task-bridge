@@ -20,6 +20,34 @@ Release automation treats packages independently. Deployments are triggered by p
 * **Backend / Python:** `backend/taskbridge-fastapi` (triggered by `python-v*` tags)
 * **Backend adapter / Python:** `backend/adapters/<adapter>` (triggered by `python-<adapter>-v*` tags, for example `python-temporal-v*`)
 
+Package-level changelog ownership:
+
+- `android/CHANGELOG.md`
+- `backend/taskbridge-fastapi/CHANGELOG.md`
+- `backend/adapters/temporal/CHANGELOG.md`
+
+The root `CHANGELOG.md` is only an index. Package changelog sections are the source of truth for GitHub Release notes.
+
+## Release Contract
+
+Release-bearing changes must use Conventional Commits and squash merge so the final commit on `main` stays machine-readable.
+
+Accepted title shapes include:
+
+- `feat(android): ...`
+- `fix(backend): ...`
+- `docs(android): ...`
+- `feat(temporal)!: ...`
+
+Breaking changes are recognized only by `!` after the type or scope, or by a `BREAKING CHANGE:` footer.
+
+Release flow:
+
+1. Run `prepare-release` with `component` and `version`.
+2. Merge the generated `chore(release): prepare <component> vX.Y.Z` PR.
+3. Push the matching tag: `android-vX.Y.Z`, `python-vX.Y.Z`, or `python-temporal-vX.Y.Z`.
+4. `publish-release.yml` publishes artifacts and creates or updates the matching GitHub Release from the package changelog section.
+
 Android publication follows the official Sonatype Central Portal flow for Gradle `maven-publish`:
 - upload both Android artifacts to the OSSRH compatibility API at `ossrh-staging-api.central.sonatype.com`
 - then transfer the deployment to the Central Portal with the documented manual endpoint
@@ -31,5 +59,7 @@ The GitHub secret names remain `OSSRH_USERNAME` and `OSSRH_PASSWORD`, but they m
 - `android-ci.yml` — runs Android JVM unit tests
 - `protocol-ci.yml` — validates shared protocol contracts
 - `docs-site.yml` — builds and deploys MkDocs documentation to GitHub Pages
+- `release-contract.yml` — validates the Conventional Commits release contract on PRs and `main`
+- `prepare-release.yml` — generates package-scoped changelog entries and opens release prep PRs
 - `publish-release.yml` — publishes tagged Android and Python releases
 - `release-smoke.yml` — validates release packaging and publication guardrails before tags are cut

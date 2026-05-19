@@ -9,35 +9,92 @@ We use [Semantic Versioning](https://semver.org/).
 - Python core (`taskbridge-fastapi`): `python-vX.Y.Z`
 - Python Temporal adapter: `python-temporal-vX.Y.Z`
 
+Release history is tracked at the package level:
+
+- `android/CHANGELOG.md`
+- `backend/taskbridge-fastapi/CHANGELOG.md`
+- `backend/adapters/temporal/CHANGELOG.md`
+
+The root `CHANGELOG.md` is only an index.
+
+For Python packages, the committed `pyproject.toml` version stays at placeholder `0.0.0.dev0`. The published version comes from the tag in CI, so routine release preparation does not require committing version bumps back to `main`.
+
+## Release Contract
+
+Release-bearing pull requests must use Conventional Commits and squash merge so the final commit on `main` is machine-readable.
+
+Accepted title shapes:
+
+- `feat(android): ...`
+- `fix(backend): ...`
+- `docs(android): ...`
+- `feat(temporal)!: ...`
+
+Breaking changes are recognized only by:
+
+- `!` after the type or scope
+- `BREAKING CHANGE:` footer
+
+Non-conventional merge messages should not reach `main`; `release-contract.yml` validates that contract.
+
 ## Automatic Publication (Recommended)
 
-Publication is handled automatically by GitHub Actions when a tag is pushed to the repository.
+Publication remains tag-driven, but maintainers first prepare the package changelog through GitHub Actions.
+
+### Step 1: Prepare the release PR
+
+Run the `prepare-release` workflow with:
+
+- `component`: `android`, `backend-fastapi`, or `temporal-adapter`
+- `version`: `X.Y.Z`
+
+The workflow:
+
+- fetches the full git history and tags
+- generates package-scoped notes with `git-cliff`
+- updates only the target package `CHANGELOG.md`
+- leaves publication untouched
+- opens a PR with title `chore(release): prepare <component> vX.Y.Z`
+
+Merge that PR with squash merge.
+
+### Step 2: Push the release tag
 
 ### For Android (Maven Central)
 
-1. Ensure the code is ready and all tests pass.
-2. Create and push a tag:
+1. Ensure the release prep PR is merged and all checks pass.
+2. Create and push the tag:
    ```bash
    git tag android-v0.1.0
    git push origin android-v0.1.0
    ```
-3. The `publish-release` workflow will trigger, sign both Android modules (`taskbridge-core`, `taskbridge-transport-okhttp`), publish them through Sonatype's OSSRH compatibility API, and then transfer the deployment to the Central Portal for automatic release.
+3. The `publish-release` workflow will:
+   - verify that `android/CHANGELOG.md` already contains the `0.1.0` section
+   - publish both Android modules (`taskbridge-core`, `taskbridge-transport-okhttp`)
+   - transfer the deployment to the Central Portal for automatic release
+   - create or update the matching GitHub Release from that changelog section
 
 ### For Python (PyPI)
 
 #### Core Library
-1. Create and push a tag:
+1. Create and push the tag:
    ```bash
    git tag python-v0.1.0
    git push origin python-v0.1.0
    ```
+2. `publish-release` verifies `backend/taskbridge-fastapi/CHANGELOG.md`, publishes to PyPI, and creates or updates the GitHub Release from the same section.
+   The workflow rewrites the package version from `0.0.0.dev0` to the tag version only inside the CI checkout.
 
 #### Temporal Adapter
-1. Create and push a tag:
+1. Create and push the tag:
    ```bash
    git tag python-temporal-v0.1.0
    git push origin python-temporal-v0.1.0
    ```
+2. `publish-release` verifies `backend/adapters/temporal/CHANGELOG.md`, publishes to PyPI, and creates or updates the GitHub Release from the same section.
+   The workflow rewrites the package version from `0.0.0.dev0` to the tag version only inside the CI checkout.
+
+If the relevant package changelog section is missing, publication fails before artifact upload starts.
 
 ## Local Publication (Dry Run)
 
@@ -68,6 +125,8 @@ To build the artifacts locally and verify their content:
 cd backend/taskbridge-fastapi
 uv build
 ```
+
+That local build will use the committed placeholder `0.0.0.dev0`. For an exact release build, run the same version rewrite step locally before `uv build`, or let GitHub Actions do it during tag publication.
 
 The artifacts will be generated in the `dist/` directory.
 
