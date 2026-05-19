@@ -12,6 +12,7 @@
 - auth header provisioning;
 - checkpoint persistence;
 - retry and failure policies;
+- transport retry gate (for network awareness);
 - diagnostics hooks.
 
 If your integration feels unclear, the first place to inspect is usually the config, not the event model.
@@ -116,6 +117,23 @@ Use a custom resolver when:
 - your gateway exposes separate write and stream paths.
 
 Do not use a custom resolver to work around backend contract drift. If the public contract changed, fix the contract first.
+
+### `retryGate`
+
+A strategy for suspending retry attempts until external conditions (like active network connectivity) are satisfied.
+
+Defaults to `NoOpTransportRetryGate`, which immediately allows retries.
+
+On Android, pass `AndroidConnectivityRetryGate(context)` to hold stream reconnection attempts while the device is offline, eliminating busy polling loops and saving user data/battery.
+
+Example:
+```kotlin
+val config = TaskBridgeConfig(
+    baseUrl = "https://api.example.com",
+    retryGate = AndroidConnectivityRetryGate(context),
+    authHeaderProvider = { _, _ -> "Bearer token" }
+)
+```
 
 ## Custom context and route example
 
@@ -266,6 +284,7 @@ flowchart TD
     Config --> Routes[routeResolver]
     Config --> Transport[transportFactory]
     Config --> Store[checkpointStore]
+    Config --> Gate[retryGate]
     Transport --> Commands[HTTP commands]
     Transport --> Stream[WS or SSE or polling]
     Client --> Commands
@@ -274,7 +293,7 @@ flowchart TD
 
 ## Boundaries to keep clean
 
-- Keep Android `Context`, Room DAOs, and UI state outside `TaskBridgeConfig`.
+- Keep generic Android `Context` references, Room DAOs, and UI state outside `TaskBridgeConfig`. (External platform helpers like `AndroidConnectivityRetryGate` take `Context` at construction time but register themselves via the clean, platform-agnostic `TransportRetryGate` interface).
 - Keep product payload validation in your app or backend contract, not in the generic client setup.
 - Keep route customization in `TaskBridgeRouteResolver`, not in ad hoc string concatenation spread across call sites.
 
