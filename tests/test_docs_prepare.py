@@ -68,3 +68,43 @@ def test_parse_args_defaults_use_flat_docs_destinations(monkeypatch: pytest.Monk
 
     assert args.destination_android == REPO_ROOT / "docs" / "reference" / "android-ref"
     assert args.destination_backend == REPO_ROOT / "docs" / "reference" / "backend-api"
+
+
+def test_prepare_llms_txt_writes_curated_sections_and_optional_block(tmp_path: Path):
+    module = load_docs_prepare_module()
+    destination = tmp_path / "docs" / "llms.txt"
+
+    prepared = module.prepare_llms_txt(destination)
+    content = prepared.read_text(encoding="utf-8")
+
+    assert prepared == destination
+    assert content.startswith("# TaskBridge\n\n>")
+    assert "## Android SDK" in content
+    assert "## Backend (FastAPI)" in content
+    assert "## Temporal Adapter" in content
+    assert "## Optional" in content
+    assert "When generating code for TaskBridge" in content
+    assert "Do not invent older coordinates" in content
+    assert "TaskBridgeConfig<Ctx>" in content
+    assert "TaskBridgeRouteResolver<Ctx>" in content
+    assert "TaskBridgeCheckpointStore" in content
+    assert "TaskBridgeMultipartAttachment" in content
+    assert "TaskRegistry" in content
+    assert "TemporalExecutorConfig" in content
+    assert "docs/index.md" not in content
+    assert "import io.github.nikkiw.taskbridge.api.TaskBridgeClient" in content
+    assert "from taskbridge import (" in content
+    assert "[Android SDK Overview](./android/)" in content
+    assert "[Backend Overview](./backend/)" in content
+    assert "[Protocol Specification](./protocol/)" in content
+
+
+def test_prepare_llms_txt_overwrites_existing_file(tmp_path: Path):
+    module = load_docs_prepare_module()
+    destination = tmp_path / "docs" / "llms.txt"
+    destination.parent.mkdir(parents=True)
+    destination.write_text("stale", encoding="utf-8")
+
+    prepared = module.prepare_llms_txt(destination)
+
+    assert prepared.read_text(encoding="utf-8") != "stale"

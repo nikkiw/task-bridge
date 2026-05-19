@@ -24,6 +24,12 @@ TaskBridge provides:
 - typed backend stream runtime settings for WebSocket and SSE
 - library-owned SSE runtime helpers so hosts do not implement transport loops
 
+The important architectural rule is:
+
+- the host owns application shell and infrastructure;
+- `taskbridge-fastapi` owns transport semantics and service orchestration;
+- runtime-specific execution belongs in adapter packages such as Temporal.
+
 ## Host transport integration
 
 Host applications should not implement transport loops directly.
@@ -46,6 +52,20 @@ Hosts are expected to provide only:
 That means host apps should avoid handwritten `StreamingResponse` generators for
 task streaming, `Last-Event-ID` replay loops, SSE heartbeat formatting, and
 transport-specific wait tuning when a TaskBridge helper already covers the case.
+
+Minimal integration shape:
+
+```python
+from fastapi import FastAPI
+
+from taskbridge.routes_http import build_http_router, install_http_exception_handlers
+from taskbridge.routes_ws import build_ws_router
+
+app = FastAPI()
+app.include_router(build_http_router())
+app.include_router(build_ws_router())
+install_http_exception_handlers(app)
+```
 
 ## Observability and ops
 
@@ -100,6 +120,17 @@ Observability wiring and readiness examples are documented in
 - `cleanup_interval_seconds=3600`
 
 Host applications can override these values per environment (dev/staging/prod).
+
+## Documentation map
+
+Use the docs site for the concept-level guide:
+
+- `docs/backend/index.md` for backend overview
+- `docs/backend/host-integration.md` for host ownership and dependency boundaries
+- `docs/backend/services-and-routes.md` for route/service split
+- `docs/backend/security-readiness-observability.md` for security and ops hooks
+- `docs/backend/state-and-runtime-boundaries.md` for durable state and runtime boundaries
+- `docs/adapters/temporal.md` for the main runtime adapter example
 
 ## Developer workflow
 

@@ -7,6 +7,7 @@ This page is the canonical workflow for building and updating the TaskBridge doc
 - `mkdocs.yml` defines the repository site and navigation
 - `docs/` contains curated hand-written guides
 - `scripts/docs_prepare.py` stages generated assets before MkDocs builds
+- `docs/llms.txt` is generated as a curated LLM entrypoint and published at the site root
 - `docs/reference/android-ref/` is generated from Dokka multi-module output and stays untracked
 - `docs/reference/backend-api/` contains generated OpenAPI documentation and stays untracked
 - Python API reference pages use `mkdocstrings` against repository modules
@@ -53,6 +54,7 @@ Default behavior:
 3. replaces the staged subtree under `docs/reference/android-ref/`
 4. copies `protocol/openapi/taskbridge.openapi.yaml` to `docs/reference/backend-api/openapi.yaml`
 5. generates a Redoc `index.html` under `docs/reference/backend-api/`
+6. writes a curated `docs/llms.txt` index for LLM-oriented consumption
 
 Useful modes:
 
@@ -63,6 +65,7 @@ uv run python scripts/docs_prepare.py --destination-android docs/reference/andro
 ```
 
 Use `--skip-build` when generated outputs are already fresh and you only want to restage them.
+The `llms.txt` output is still regenerated in `--skip-build` mode so summaries and curated links stay in sync with the docs workflow.
 
 ## When docs must be updated
 
@@ -86,6 +89,7 @@ Use `--skip-build` when generated outputs are already fresh and you only want to
 ### If contributor workflow changes
 
 - update this page first
+- refresh the curated `llms.txt` content if the best entrypoints for integrators changed
 - then update short entrypoints in `README.md`, `CONTRIBUTING.md`, or package README files only as pointers
 
 ## GitHub Pages and CI

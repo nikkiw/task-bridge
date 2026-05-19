@@ -88,3 +88,41 @@ def test_publication_docs_match_current_release_flow() -> None:
     assert "pypi-v*" not in publication_docs
     assert "maven-v*" not in publication_docs
     assert "Sonatype Jira username" not in publication_docs
+
+
+def test_docs_workflow_and_entrypoints_reference_llms_txt() -> None:
+    docs_related = "\n".join(
+        [
+            read("README.md"),
+            read("docs/documentation/index.md"),
+            read("scripts/docs_prepare.py"),
+        ]
+    )
+
+    assert "llms.txt" in docs_related
+
+
+def test_android_and_backend_pages_link_to_llms_txt() -> None:
+    docs_entrypoints = "\n".join(
+        [
+            read("docs/android/index.md"),
+            read("docs/backend/index.md"),
+        ]
+    )
+
+    assert "llms.txt" in docs_entrypoints
+
+
+def test_android_installation_examples_use_current_group_id() -> None:
+    installation_docs = "\n".join(
+        [
+            read("docs/getting-started.md"),
+            read("docs/android/index.md"),
+            read("android/README.md"),
+        ]
+    )
+
+    assert "io.github.nikkiw.taskbridge:taskbridge-core" in installation_docs
+    assert "io.github.nikkiw.taskbridge:taskbridge-transport-okhttp" in installation_docs
+    assert "io.github.nikkiw:taskbridge-core" not in installation_docs
+    assert "io.github.nikkiw:taskbridge-transport-okhttp" not in installation_docs
