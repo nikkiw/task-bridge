@@ -96,6 +96,8 @@ def test_prepare_release_workflow_exists() -> None:
     assert "temporal-adapter" in workflow
     assert "version" in workflow
     assert "git-cliff" in workflow
+    assert "--from " not in workflow
+    assert "..HEAD" in workflow
     assert "chore(release): prepare" in workflow
 
 

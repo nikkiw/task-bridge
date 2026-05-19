@@ -73,11 +73,13 @@ jobs:
           PY
           )
           PREVIOUS_TAG=$(uv run python scripts/release_tools.py previous-tag --component "${COMPONENT}" --version "${VERSION}")
-          CLIFF_ARGS=(--config cliff.toml --unreleased --include-path "${INCLUDE_PATH}")
+          CLIFF_ARGS=(--config cliff.toml --include-path "${INCLUDE_PATH}")
           if [[ -n "${PREVIOUS_TAG}" ]]; then
-            CLIFF_ARGS+=(--from "${PREVIOUS_TAG}")
+            CLIFF_RANGE="${PREVIOUS_TAG}..HEAD"
+          else
+            CLIFF_ARGS+=(--unreleased)
           fi
-          git-cliff "${CLIFF_ARGS[@]}" > raw-notes.md
+          git-cliff "${CLIFF_ARGS[@]}" ${CLIFF_RANGE:+-- "${CLIFF_RANGE}"} > raw-notes.md
           uv run python scripts/release_tools.py normalize-cliff-notes \
             --input raw-notes.md \
             --version "${VERSION}" \
