@@ -98,19 +98,28 @@ jobs:
 
       - name: Create release preparation pull request
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN != '' && secrets.RELEASE_PR_TOKEN || github.token }}
           COMPONENT: ${{ inputs.component }}
           VERSION: ${{ inputs.version }}
         run: |
           BRANCH="release/${COMPONENT}-v${VERSION}"
+          PR_TITLE="chore(release): prepare ${COMPONENT} v${VERSION}"
+          PR_BODY="Prepared package changelog and release notes for ${COMPONENT} v${VERSION}."
+          PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/new/${BRANCH}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "${BRANCH}"
           git add CHANGELOG.md android/CHANGELOG.md backend/taskbridge-fastapi/CHANGELOG.md backend/adapters/temporal/CHANGELOG.md
-          git commit -m "chore(release): prepare ${COMPONENT} v${VERSION}"
+          git commit -m "${PR_TITLE}"
           git push --set-upstream origin "${BRANCH}"
-          gh pr create \
+          if gh pr create \
             --base main \
             --head "${BRANCH}" \
-            --title "chore(release): prepare ${COMPONENT} v${VERSION}" \
-            --body "Prepared package changelog and release notes for ${COMPONENT} v${VERSION}."
+            --title "${PR_TITLE}" \
+            --body "${PR_BODY}"; then
+            echo "pull_request_created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Branch ${BRANCH} was pushed, but GitHub Actions could not create the pull request automatically."
+            echo "::warning::Open the PR manually: ${PR_URL}"
+            echo "pull_request_created=false" >> "$GITHUB_OUTPUT"
+          fi

@@ -46,6 +46,12 @@ def test_component_for_name_returns_expected_component() -> None:
     assert component is COMPONENTS["backend-fastapi"]
 
 
+def test_component_include_paths_use_glob_patterns() -> None:
+    assert COMPONENTS["android"].include_paths == ("android/**/*",)
+    assert COMPONENTS["backend-fastapi"].include_paths == ("backend/taskbridge-fastapi/**/*",)
+    assert COMPONENTS["temporal-adapter"].include_paths == ("backend/adapters/temporal/**/*",)
+
+
 def test_find_previous_component_tag_ignores_other_release_families() -> None:
     component = COMPONENTS["android"]
     tags = [
