@@ -34,8 +34,10 @@ import io.github.nikkiw.taskbridge.model.TaskFailedEvent
 import io.github.nikkiw.taskbridge.model.TaskSuspendedEvent
 import io.github.nikkiw.taskbridge.policy.DefaultTaskBridgeFailureClassifier
 import io.github.nikkiw.taskbridge.policy.ExponentialBackoffTaskBridgeRetryPolicy
+import io.github.nikkiw.taskbridge.policy.NoOpTransportRetryGate
 import io.github.nikkiw.taskbridge.policy.TaskBridgeFailureClassifier
 import io.github.nikkiw.taskbridge.policy.TaskBridgeRetryPolicy
+import io.github.nikkiw.taskbridge.policy.TransportRetryGate
 import io.github.nikkiw.taskbridge.transport.TaskBridgeCheckpointBinding
 import io.github.nikkiw.taskbridge.transport.TaskBridgeHttpApi
 import io.github.nikkiw.taskbridge.transport.TaskBridgeStreamTransport
@@ -88,6 +90,7 @@ data class TaskBridgeConfig<Ctx>(
     val checkpointNamespace: String? = null,
     val failureClassifier: TaskBridgeFailureClassifier = DefaultTaskBridgeFailureClassifier(),
     val retryPolicy: TaskBridgeRetryPolicy = ExponentialBackoffTaskBridgeRetryPolicy(),
+    val retryGate: TransportRetryGate = NoOpTransportRetryGate,
     val streamTransport: TaskBridgeStreamTransportConfig = TaskBridgeStreamTransportConfig(),
     val transportEventListener: TaskBridgeTransportEventListener<Ctx>? = null,
     val json: Json = taskBridgeJson(),
@@ -350,6 +353,7 @@ internal class DefaultTaskBridgeClient<Ctx>(
                             routeResolver = config.routeResolver,
                             failureClassifier = config.failureClassifier,
                             retryPolicy = config.retryPolicy,
+                            retryGate = config.retryGate,
                         ),
                     checkpoint =
                         TaskBridgeCheckpointBinding(

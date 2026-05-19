@@ -18,8 +18,10 @@ package io.github.nikkiw.taskbridge.transport
 import io.github.nikkiw.taskbridge.api.TaskBridgeRouteResolver
 import io.github.nikkiw.taskbridge.checkpoint.TaskBridgeCheckpointStore
 import io.github.nikkiw.taskbridge.checkpoint.buildCheckpointKey
+import io.github.nikkiw.taskbridge.policy.NoOpTransportRetryGate
 import io.github.nikkiw.taskbridge.policy.TaskBridgeFailureClassifier
 import io.github.nikkiw.taskbridge.policy.TaskBridgeRetryPolicy
+import io.github.nikkiw.taskbridge.policy.TransportRetryGate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
@@ -40,6 +42,8 @@ data class TaskBridgeStreamTransportDeps<Ctx>(
     val failureClassifier: TaskBridgeFailureClassifier,
     /** Policy for retry backoff. */
     val retryPolicy: TaskBridgeRetryPolicy,
+    /** Gate for suspending retry attempts. */
+    val retryGate: TransportRetryGate = NoOpTransportRetryGate,
 )
 
 /**
