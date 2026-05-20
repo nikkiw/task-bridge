@@ -88,6 +88,9 @@ jobs:
             --component "${COMPONENT}" \
             --version "${VERSION}" \
             --section-file release-section.md
+          uv run python scripts/release_tools.py update-readme \
+            --component "${COMPONENT}" \
+            --version "${VERSION}"
           test -s "${CHANGELOG_PATH}"
 
       - name: Ensure root changelog index exists
@@ -109,7 +112,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "${BRANCH}"
-          git add CHANGELOG.md android/CHANGELOG.md backend/taskbridge-fastapi/CHANGELOG.md backend/adapters/temporal/CHANGELOG.md
+          git add README.md CHANGELOG.md android/CHANGELOG.md backend/taskbridge-fastapi/CHANGELOG.md backend/adapters/temporal/CHANGELOG.md
           git commit -m "${PR_TITLE}"
           git push --set-upstream origin "${BRANCH}"
           if gh pr create \
