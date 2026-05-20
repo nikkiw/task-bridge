@@ -149,13 +149,4 @@ Run commands from this package directory:
 
 For repository-level documentation and docs generation commands, see `../../docs/documentation/index.md`.
 
-## Phase 11 test matrix
-
-Primary test areas:
-
-- unit/service coverage in `tests/test_models.py`, `tests/test_services.py`, `tests/test_redis_event_store.py`
-- route and contract checks in `tests/test_http_api.py`, `tests/test_ws_api.py`, `tests/test_fastapi_contract.py`
-- integration flow checks in `tests/test_integration_flow.py`
-- protocol contract validation in `tests/test_protocol_contracts.py`
-
 Reference matrix details live in [`tests/README.md`](tests/README.md).
