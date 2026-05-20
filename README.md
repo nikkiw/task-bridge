@@ -5,6 +5,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.nikkiw.taskbridge/taskbridge-core.svg)](https://search.maven.org/artifact/io.github.nikkiw.taskbridge/taskbridge-core)
 [![Backend CI](https://github.com/nikkiw/task-bridge/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/nikkiw/task-bridge/actions/workflows/backend-ci.yml)
 [![Android CI](https://github.com/nikkiw/task-bridge/actions/workflows/android-ci.yml/badge.svg)](https://github.com/nikkiw/task-bridge/actions/workflows/android-ci.yml)
+[![AI Agent Ready](https://img.shields.io/badge/🤖_AI_Agent-Ready-brightgreen?style=flat-square)](docs/llms.txt)
 
 TaskBridge manages long-running tasks and AI response streaming, saving you from writing custom WebSocket reconnection logic and Android fallback layers. The library automatically degrades along the `WebSocket -> SSE -> Long Polling` chain, keeping your FastAPI backend clean and stateless.
 
@@ -116,6 +117,32 @@ stateDiagram-v2
     TL --> Client : Resumes from last eventId
 ```
 
+## Traffic Splitting (Bottleneck Prevention)
+
+TaskBridge separates data paths to maintain low latency and prevent connection clogging. Heavy binary files are uploaded via traditional REST endpoints, whereas lightweight AI tokens are streamed instantly.
+
+```mermaid
+graph TD
+    classDef client fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef api fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storage fill:#efebe9,stroke:#5d4037,stroke-width:2px;
+    
+    Client["📱 Android Client / Frontend"]:::client
+    
+    subgraph HostBackend ["FastAPI Host Backend"]
+        API["REST API (HTTP Multipart POST)"]:::api
+        TB["TaskBridge Streaming Layer"]:::api
+    end
+    
+    Storage["📦 Object Storage / Media Service"]:::storage
+    
+    Client -->|1. Heavy Data: Multipart uploads / assets| API
+    API -->|2. Store Asset| Storage
+    
+    Client <-->|3. Control & Tokens: WS / SSE / Polling| TB
+    TB -->|4. Live AI Streams / Status Events| Client
+```
+
 ## Backend Engineering Baseline
 
 The Python backend should follow the same practical conventions used across the portfolio's modern Python services:
@@ -165,7 +192,7 @@ For Python packages, the committed `pyproject.toml` version is a placeholder `0.
 
 Repository documentation is published from the MkDocs source in `docs/` and combines hand-written concept guides with generated API reference.
 
-For LLM-friendly navigation, `scripts/docs_prepare.py` also writes a curated `docs/llms.txt`, which MkDocs publishes as `/llms.txt` alongside the main site.
+For LLM-friendly navigation, `scripts/docs_prepare.py` also writes a curated `docs/llms.txt`, which MkDocs publishes as `/llms.txt` alongside the main site. Because the repository is fully AI-agent ready, you can feed the link to this file directly to your AI code editor (such as Cursor or Windsurf) for high-accuracy, zero-context automatic integration.
 
 Recommended reading order:
 
