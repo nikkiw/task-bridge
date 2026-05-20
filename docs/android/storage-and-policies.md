@@ -86,6 +86,32 @@ Current behavior:
 
 This is the right default for most mobile apps because it avoids both hot-loop retries and overly slow recovery.
 
+## Transport retry gate
+
+While `TaskBridgeRetryPolicy` determines *how long* the backoff delay should be, the `TransportRetryGate` determines *when* a retry is allowed to proceed based on external conditions (e.g., active internet availability).
+
+By separating these two concepts, we keep the retry backoff calculation pure, functional, and free of platform-specific dependencies or blocking thread operations.
+
+### Interface signature
+
+```kotlin
+interface TransportRetryGate {
+    suspend fun awaitRetryAllowed()
+}
+```
+
+When a recoverable stream failure occurs, the SDK first suspends inside `awaitRetryAllowed()` of the configured gate, and only then executes the backoff delay calculated by `TaskBridgeRetryPolicy`.
+
+### Supported implementations
+
+- **`NoOpTransportRetryGate` (Default)**: Immediately permits retries. Used as the default baseline to maintain backward compatibility.
+- **`AndroidConnectivityRetryGate`**: Suspends observation loop retries while the device is offline. It registers a dynamic network callback with Android's `ConnectivityManager` inside a cold `callbackFlow` to wait for active, validated internet connectivity (`NET_CAPABILITY_INTERNET` and optionally `NET_CAPABILITY_VALIDATED`) before resuming.
+
+### Why this matters
+
+1. **Non-blocking Coroutine Model**: It avoids thread-blocking calls like `runBlocking` or sleep loops inside retry calculations, keeping standard dispatcher threads (such as `Dispatchers.IO`) free.
+2. **Cancellation Support**: `awaitRetryAllowed()` is fully suspending and respects coroutine cancellation. If the stream observation scope is cancelled while offline, the waiting sequence is cleanly terminated immediately.
+
 ## Failure classifier
 
 `TaskBridgeFailureClassifier` decides whether a failure is retryable.
@@ -108,11 +134,13 @@ The `401` case is special:
 ```mermaid
 flowchart TD
     Error[Throwable] --> Classifier[TaskBridgeFailureClassifier]
-    Classifier -->|retryable| Retry[TaskBridgeRetryPolicy]
+    Classifier -->|retryable| Gate[TransportRetryGate]
+    Gate -->|await allowed| Retry[TaskBridgeRetryPolicy]
     Retry --> Delay[Backoff delay]
     Delay --> Resume[Retry command or stream]
     Classifier -->|fatal| Fail[Surface error to caller]
 ```
+
 
 ## When to customize policies
 

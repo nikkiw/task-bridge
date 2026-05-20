@@ -18,9 +18,11 @@ package io.github.nikkiw.taskbridge.transport
 import io.github.nikkiw.taskbridge.checkpoint.TaskBridgeCheckpointStore
 import io.github.nikkiw.taskbridge.internal.HTTP_UNAUTHORIZED
 import io.github.nikkiw.taskbridge.model.TaskEvent
+import io.github.nikkiw.taskbridge.policy.NoOpTransportRetryGate
 import io.github.nikkiw.taskbridge.policy.TaskBridgeFailureClassifier
 import io.github.nikkiw.taskbridge.policy.TaskBridgeHttpStatusException
 import io.github.nikkiw.taskbridge.policy.TaskBridgeRetryPolicy
+import io.github.nikkiw.taskbridge.policy.TransportRetryGate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -147,6 +149,7 @@ internal data class TransportBackoffContext(
     val checkpointStore: TaskBridgeCheckpointStore,
     val failureClassifier: TaskBridgeFailureClassifier,
     val retryPolicy: TaskBridgeRetryPolicy,
+    val retryGate: TransportRetryGate = NoOpTransportRetryGate,
 )
 
 internal data class ObservationState(
@@ -213,6 +216,7 @@ internal suspend fun applyTransportBackoff(
     if (!currentCoroutineContext().isActive || !ctx.failureClassifier.isRetryable(e)) {
         throw e
     }
+    ctx.retryGate.awaitRetryAllowed()
     delay(ctx.retryPolicy.nextDelayMs(loop.attempt))
     loop.attempt += 1
     loop.watermark = ctx.checkpointStore.load(checkpointKey) ?: loop.watermark

@@ -20,7 +20,15 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,8 +36,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,8 +53,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -265,6 +277,7 @@ fun MainApp() {
                     file = File(context.filesDir, "taskbridge_checkpoints.preferences_pb"),
                     scope = scope,
                 ),
+                retryGate = io.github.nikkiw.taskbridge.policy.AndroidConnectivityRetryGate(context),
             ),
         )
     }
@@ -308,6 +321,8 @@ fun WelcomeScreen(
     onBaseUrlChange: (String) -> Unit,
     onNavigate: (SampleDestination) -> Unit,
 ) {
+    val isOnlineState = rememberIsOnline()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -337,6 +352,10 @@ fun WelcomeScreen(
                         Spacer(Modifier.height(4.dp))
                         Text("⚠️ ACTION REQUIRED", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                     }
+
+                    ConnectivityOfflineBadge(
+                        isOnlineProvider = { !isOnlineState.value && !appState.isFinished }
+                    )
                 }
             }
         }
@@ -395,6 +414,7 @@ fun AdvancedEnterpriseScreen(
     onBack: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val isOnlineState = rememberIsOnline()
     // Local state to track if we want to show the "Start New" form even if a task is active
     var showNewTaskForm by remember { mutableStateOf(appState.activeTaskId == null) }
 
@@ -474,6 +494,10 @@ fun AdvancedEnterpriseScreen(
                                 },
                             )
                         }
+
+                        ConnectivityOfflineBadge(
+                            isOnlineProvider = { !isOnlineState.value && !appState.isFinished }
+                        )
 
                         Button(
                             modifier = Modifier.fillMaxWidth(),
@@ -690,3 +714,109 @@ private fun TaskEvent.toSampleLine(): String = when (this) {
     is TaskCancelledEvent -> "[Cancelled]"
     is UnknownTaskEvent -> "[Unknown] $wireType: ${payload["message"] ?: ""}"
 }
+
+@Composable
+fun rememberIsOnline(): State<Boolean> {
+    val context = LocalContext.current
+    val appContext = remember(context) { context.applicationContext }
+    
+    val initialOnline = remember(appContext) {
+        val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
+        capabilities?.let {
+            it.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            it.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } ?: false
+    }
+
+    return produceState(initialValue = initialOnline, appContext) {
+        val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        
+        fun checkOnline(): Boolean {
+            val network = connectivityManager.activeNetwork ?: return false
+            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+            return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                   capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        }
+        
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) { value = checkOnline() }
+            override fun onLost(network: android.net.Network) { value = checkOnline() }
+            override fun onCapabilitiesChanged(network: android.net.Network, capabilities: android.net.NetworkCapabilities) {
+                value = checkOnline()
+            }
+        }
+        
+        connectivityManager.registerDefaultNetworkCallback(callback)
+        
+        awaitDispose {
+            runCatching { connectivityManager.unregisterNetworkCallback(callback) }
+        }
+    }
+}
+
+@Composable
+fun ConnectivityOfflineBadge(
+    isOnlineProvider: () -> Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val isOnline = isOnlineProvider()
+    if (!isOnline) {
+        val context = LocalContext.current
+        
+        val infiniteTransition = rememberInfiniteTransition(label = "offlinePulse")
+        val pulseAlpha by infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse"
+        )
+        
+        Spacer(Modifier.height(8.dp))
+        Surface(
+            onClick = {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS)
+                context.startActivity(intent)
+            },
+            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
+            shape = MaterialTheme.shapes.small,
+            modifier = modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.error.copy(alpha = pulseAlpha),
+                            shape = CircleShape
+                        )
+                )
+                
+                Text(
+                    text = "⚠️ Network offline. Reconnecting...",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                
+                Spacer(Modifier.weight(1f))
+                
+                Text(
+                    text = "Settings →",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+

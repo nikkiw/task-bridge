@@ -82,7 +82,12 @@ class TaskBridgeStreamTransport<Ctx>(
         val seen = RecentEventIds()
         val loop = ObservationLoopVars(0, afterEventId ?: checkpointStore.load(checkpointKey))
         val backoffCtx =
-            TransportBackoffContext(checkpointStore, deps.failureClassifier, deps.retryPolicy)
+            TransportBackoffContext(
+                checkpointStore = checkpointStore,
+                failureClassifier = deps.failureClassifier,
+                retryPolicy = deps.retryPolicy,
+                retryGate = deps.retryGate,
+            )
 
         try {
             while (currentCoroutineContext().isActive) {
