@@ -10,7 +10,9 @@
 TaskBridge manages long-running tasks and AI response streaming, saving you from writing custom WebSocket reconnection logic and Android fallback layers. The library automatically degrades along the `WebSocket -> SSE -> Long Polling` chain, keeping your FastAPI backend clean and stateless.
 
 <p align="center">
-  <video src="docs/media/task-bridge-example-screencast.mp4" width="100%" autoplay loop muted playsinline></video>
+  <a href="docs/media/task-bridge-example-screencast.mp4">
+    <img src="docs/media/screencast-thumbnail.png" width="100%" alt="Watch TaskBridge Screencast Demo">
+  </a>
 </p>
 
 ## Overview
