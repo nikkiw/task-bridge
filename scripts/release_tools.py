@@ -13,8 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SECTION_HEADER_RE = re.compile(r"^## (?P<version>\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?) - (?P<date>\d{4}-\d{2}-\d{2})$")
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 CONVENTIONAL_TITLE_RE = re.compile(
-    r"^(feat|fix|docs|refactor|perf|test|build|ci|chore)\(([a-z0-9-]+)\)!?: .+"
-    r"|^(feat|fix|docs|refactor|perf|test|build|ci|chore)!: .+$"
+    r"^(feat|fix|docs|refactor|perf|test|build|ci|chore)(?:\([a-z0-9-]+\))?!?: .+$"
 )
 
 
@@ -251,6 +250,32 @@ def set_package_version(pyproject_path: Path, version: str) -> None:
     pyproject_path.write_text(updated, encoding="utf-8")
 
 
+def update_readme_version(readme_path: Path, component_key: str, version: str) -> None:
+    content = readme_path.read_text(encoding="utf-8")
+    if component_key == "android":
+        # Updates taskbridge-core and taskbridge-transport-okhttp
+        pattern = r'(io\.github\.nikkiw\.taskbridge:taskbridge-(?:core|transport-okhttp)):(\d+\.\d+\.\d+[a-zA-Z0-9.+-]*)'
+        updated, count = re.subn(pattern, rf'\g<1>:{version}', content)
+        if count == 0:
+            raise ReleaseToolError(f"Could not rewrite Android version in {readme_path}")
+    elif component_key == "backend-fastapi":
+        # Updates taskbridge-fastapi version in pip install
+        pattern = r'(pip install taskbridge-fastapi==)(\d+\.\d+\.\d+[a-zA-Z0-9.+-]*)'
+        updated, count = re.subn(pattern, rf'\g<1>{version}', content)
+        if count == 0:
+            raise ReleaseToolError(f"Could not rewrite Backend version in {readme_path}")
+    elif component_key == "temporal-adapter":
+        # Updates taskbridge-temporal version in pip install
+        pattern = r'(pip install taskbridge-temporal==)(\d+\.\d+\.\d+[a-zA-Z0-9.+-]*)'
+        updated, count = re.subn(pattern, rf'\g<1>{version}', content)
+        if count == 0:
+            raise ReleaseToolError(f"Could not rewrite Temporal version in {readme_path}")
+    else:
+        raise ReleaseToolError(f"Unknown component key: {component_key}")
+
+    readme_path.write_text(updated, encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="TaskBridge release automation helpers")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -299,6 +324,10 @@ def main() -> int:
     set_version_parser = subparsers.add_parser("set-package-version")
     set_version_parser.add_argument("--component", required=True)
     set_version_parser.add_argument("--version", required=True)
+
+    update_readme_parser = subparsers.add_parser("update-readme")
+    update_readme_parser.add_argument("--component", required=True)
+    update_readme_parser.add_argument("--version", required=True)
 
     args = parser.parse_args()
 
@@ -375,6 +404,12 @@ def main() -> int:
         pyproject_path = component.changelog_file.parent / "pyproject.toml"
         set_package_version(pyproject_path, args.version)
         print(pyproject_path)
+        return 0
+
+    if args.command == "update-readme":
+        readme_path = REPO_ROOT / "README.md"
+        update_readme_version(readme_path, args.component, args.version)
+        print(readme_path)
         return 0
 
     raise ReleaseToolError(f"Unsupported command: {args.command}")

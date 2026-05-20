@@ -1,6 +1,13 @@
 # TaskBridge
 
-Reliable AI Task Streaming library for Android and FastAPI.
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![PyPI version](https://badge.fury.io/py/taskbridge-fastapi.svg)](https://badge.fury.io/py/taskbridge-fastapi)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.nikkiw.taskbridge/taskbridge-core.svg)](https://search.maven.org/artifact/io.github.nikkiw.taskbridge/taskbridge-core)
+[![Backend CI](https://github.com/nikkiw/task-bridge/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/nikkiw/task-bridge/actions/workflows/backend-ci.yml)
+[![Android CI](https://github.com/nikkiw/task-bridge/actions/workflows/android-ci.yml/badge.svg)](https://github.com/nikkiw/task-bridge/actions/workflows/android-ci.yml)
+[![AI Agent Ready](https://img.shields.io/badge/🤖_AI_Agent-Ready-brightgreen?style=flat-square)](docs/llms.txt)
+
+TaskBridge manages long-running tasks and AI response streaming, saving you from writing custom WebSocket reconnection logic and Android fallback layers. The library automatically degrades along the `WebSocket -> SSE -> Long Polling` chain, keeping your FastAPI backend clean and stateless.
 
 ## Overview
 
@@ -11,6 +18,65 @@ TaskBridge is a protocol-driven infrastructure layer for long-running, interacti
 - runtime-specific execution adapters such as Temporal.
 
 The repository is organized so those layers can evolve independently without changing the public task-streaming model.
+
+## Installation
+
+### 1. Backend (FastAPI)
+```bash
+pip install taskbridge-fastapi==0.1.1
+
+# Optional: Temporal adapter
+pip install taskbridge-temporal==0.1.0
+```
+
+### 2. Android Client (Kotlin)
+Add the dependencies to your module's `build.gradle.kts` (ensure `mavenCentral()` is in your repositories list):
+```kotlin
+dependencies {
+    implementation("io.github.nikkiw.taskbridge:taskbridge-core:0.1.0")
+    // OkHttp transport adapter (recommended):
+    implementation("io.github.nikkiw.taskbridge:taskbridge-transport-okhttp:0.1.0")
+}
+```
+
+## Quick Start (Zero Setup)
+
+Backend developers can test the streaming core locally using `uv` or instantly run a sandbox in the browser. No Docker, Redis, or Temporal is required to get started.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nikkiw/task-bridge)
+
+**1. Server (FastAPI in-memory Greeter):**
+
+```bash
+uv run --no-project examples/01-minimal-greeter/app.py
+```
+
+**2. Client (Android / Kotlin):**
+
+```kotlin
+val created = client.startTaskJson(
+    TaskCreateJsonRequest(clientRequestId = "req-1", taskType = "greet")
+)
+
+// Automatically handles disconnections and resumes from the last eventId
+client.observeTaskEvents(created.taskId).collect { event ->
+    when (event) {
+        is TaskProgressEvent -> println(event.payload)
+        is TaskCompletedEvent -> println("Done!")
+    }
+}
+```
+
+**Or test via terminal (Long Polling):**
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"clientRequestId": "req-1", "taskType": "greet", "input": {"name": "TaskBridge"}}'
+
+# Copy the taskId from the response of the previous request
+curl "http://127.0.0.1:8000/api/v1/tasks/<taskId>/events?limit=50&wait_timeout_ms=5000"
+```
 
 ## Project Structure
 
@@ -30,6 +96,52 @@ The repository is organized so those layers can evolve independently without cha
 - **Host-owned backend integration**: FastAPI hosts keep app construction, auth, and infrastructure ownership.
 - **Runtime isolation**: adapters integrate Temporal or other runtimes without leaking vendor behavior into backend core.
 - **Idempotent task creation and actions**: client-generated IDs are part of the public contract.
+
+## Resilience Architecture
+
+TaskBridge automatically manages transport degradation on mobile networks without losing events.
+
+```mermaid
+stateDiagram-v2
+    [*] --> WebSocket : Primary Connection
+    WebSocket --> SSE : WS Blocked/Failed
+    SSE --> LongPolling : Proxy Timeout/Buffering
+    LongPolling --> WebSocket : Network Recovers
+    
+    state "Transport Layer" as TL {
+        WebSocket
+        SSE
+        LongPolling
+    }
+    
+    TL --> Client : Resumes from last eventId
+```
+
+## Traffic Splitting (Bottleneck Prevention)
+
+TaskBridge separates data paths to maintain low latency and prevent connection clogging. Heavy binary files are uploaded via traditional REST endpoints, whereas lightweight AI tokens are streamed instantly.
+
+```mermaid
+graph TD
+    classDef client fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef api fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storage fill:#efebe9,stroke:#5d4037,stroke-width:2px;
+    
+    Client["📱 Android Client / Frontend"]:::client
+    
+    subgraph HostBackend ["FastAPI Host Backend"]
+        API["REST API (HTTP Multipart POST)"]:::api
+        TB["TaskBridge Streaming Layer"]:::api
+    end
+    
+    Storage["📦 Object Storage / Media Service"]:::storage
+    
+    Client -->|1. Heavy Data: Multipart uploads / assets| API
+    API -->|2. Store Asset| Storage
+    
+    Client <-->|3. Control & Tokens: WS / SSE / Polling| TB
+    TB -->|4. Live AI Streams / Status Events| Client
+```
 
 ## Backend Engineering Baseline
 
@@ -80,7 +192,7 @@ For Python packages, the committed `pyproject.toml` version is a placeholder `0.
 
 Repository documentation is published from the MkDocs source in `docs/` and combines hand-written concept guides with generated API reference.
 
-For LLM-friendly navigation, `scripts/docs_prepare.py` also writes a curated `docs/llms.txt`, which MkDocs publishes as `/llms.txt` alongside the main site.
+For LLM-friendly navigation, `scripts/docs_prepare.py` also writes a curated `docs/llms.txt`, which MkDocs publishes as `/llms.txt` alongside the main site. Because the repository is fully AI-agent ready, you can feed the link to this file directly to your AI code editor (such as Cursor or Windsurf) for high-accuracy, zero-context automatic integration.
 
 Recommended reading order:
 
