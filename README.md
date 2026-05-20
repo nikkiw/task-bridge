@@ -1,6 +1,12 @@
 # TaskBridge
 
-Reliable AI Task Streaming library for Android and FastAPI.
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![PyPI version](https://badge.fury.io/py/taskbridge-fastapi.svg)](https://badge.fury.io/py/taskbridge-fastapi)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.nikkiw.taskbridge/taskbridge-core.svg)](https://search.maven.org/artifact/io.github.nikkiw.taskbridge/taskbridge-core)
+[![Backend CI](https://github.com/nikkiw/task-bridge/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/nikkiw/task-bridge/actions/workflows/backend-ci.yml)
+[![Android CI](https://github.com/nikkiw/task-bridge/actions/workflows/android-ci.yml/badge.svg)](https://github.com/nikkiw/task-bridge/actions/workflows/android-ci.yml)
+
+TaskBridge manages long-running tasks and AI response streaming, saving you from writing custom WebSocket reconnection logic and Android fallback layers. The library automatically degrades along the `WebSocket -> SSE -> Long Polling` chain, keeping your FastAPI backend clean and stateless.
 
 ## Overview
 
@@ -11,6 +17,65 @@ TaskBridge is a protocol-driven infrastructure layer for long-running, interacti
 - runtime-specific execution adapters such as Temporal.
 
 The repository is organized so those layers can evolve independently without changing the public task-streaming model.
+
+## Installation
+
+### 1. Backend (FastAPI)
+```bash
+pip install taskbridge-fastapi==0.1.1
+
+# Optional: Temporal adapter
+pip install taskbridge-temporal==0.1.0
+```
+
+### 2. Android Client (Kotlin)
+Add the dependencies to your module's `build.gradle.kts` (ensure `mavenCentral()` is in your repositories list):
+```kotlin
+dependencies {
+    implementation("io.github.nikkiw.taskbridge:taskbridge-core:0.1.0")
+    // OkHttp transport adapter (recommended):
+    implementation("io.github.nikkiw.taskbridge:taskbridge-transport-okhttp:0.1.0")
+}
+```
+
+## Quick Start (Zero Setup)
+
+Backend developers can test the streaming core locally using `uv` or instantly run a sandbox in the browser. No Docker, Redis, or Temporal is required to get started.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nikkiw/task-bridge)
+
+**1. Server (FastAPI in-memory Greeter):**
+
+```bash
+uv run --no-project examples/01-minimal-greeter/app.py
+```
+
+**2. Client (Android / Kotlin):**
+
+```kotlin
+val created = client.startTaskJson(
+    TaskCreateJsonRequest(clientRequestId = "req-1", taskType = "greet")
+)
+
+// Automatically handles disconnections and resumes from the last eventId
+client.observeTaskEvents(created.taskId).collect { event ->
+    when (event) {
+        is TaskProgressEvent -> println(event.payload)
+        is TaskCompletedEvent -> println("Done!")
+    }
+}
+```
+
+**Or test via terminal (Long Polling):**
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"clientRequestId": "req-1", "taskType": "greet", "input": {"name": "TaskBridge"}}'
+
+# Copy the taskId from the response of the previous request
+curl "http://127.0.0.1:8000/api/v1/tasks/<taskId>/events?limit=50&wait_timeout_ms=5000"
+```
 
 ## Project Structure
 
@@ -30,6 +95,26 @@ The repository is organized so those layers can evolve independently without cha
 - **Host-owned backend integration**: FastAPI hosts keep app construction, auth, and infrastructure ownership.
 - **Runtime isolation**: adapters integrate Temporal or other runtimes without leaking vendor behavior into backend core.
 - **Idempotent task creation and actions**: client-generated IDs are part of the public contract.
+
+## Resilience Architecture
+
+TaskBridge automatically manages transport degradation on mobile networks without losing events.
+
+```mermaid
+stateDiagram-v2
+    [*] --> WebSocket : Primary Connection
+    WebSocket --> SSE : WS Blocked/Failed
+    SSE --> LongPolling : Proxy Timeout/Buffering
+    LongPolling --> WebSocket : Network Recovers
+    
+    state "Transport Layer" as TL {
+        WebSocket
+        SSE
+        LongPolling
+    }
+    
+    TL --> Client : Resumes from last eventId
+```
 
 ## Backend Engineering Baseline
 
