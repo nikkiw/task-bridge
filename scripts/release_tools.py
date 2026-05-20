@@ -13,8 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SECTION_HEADER_RE = re.compile(r"^## (?P<version>\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?) - (?P<date>\d{4}-\d{2}-\d{2})$")
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 CONVENTIONAL_TITLE_RE = re.compile(
-    r"^(feat|fix|docs|refactor|perf|test|build|ci|chore)\(([a-z0-9-]+)\)!?: .+"
-    r"|^(feat|fix|docs|refactor|perf|test|build|ci|chore)!: .+$"
+    r"^(feat|fix|docs|refactor|perf|test|build|ci|chore)(?:\([a-z0-9-]+\))?!?: .+$"
 )
 
 
@@ -255,19 +254,19 @@ def update_readme_version(readme_path: Path, component_key: str, version: str) -
     content = readme_path.read_text(encoding="utf-8")
     if component_key == "android":
         # Updates taskbridge-core and taskbridge-transport-okhttp
-        pattern = r'(io\.github\.nikkiw\.taskbridge:taskbridge-(?:core|transport-okhttp)):(\d+\.\d+\.\d+.*)'
+        pattern = r'(io\.github\.nikkiw\.taskbridge:taskbridge-(?:core|transport-okhttp)):(\d+\.\d+\.\d+[a-zA-Z0-9.+-]*)'
         updated, count = re.subn(pattern, rf'\g<1>:{version}', content)
         if count == 0:
             raise ReleaseToolError(f"Could not rewrite Android version in {readme_path}")
     elif component_key == "backend-fastapi":
         # Updates taskbridge-fastapi version in pip install
-        pattern = r'(pip install taskbridge-fastapi==)(\d+\.\d+\.\d+.*)'
+        pattern = r'(pip install taskbridge-fastapi==)(\d+\.\d+\.\d+[a-zA-Z0-9.+-]*)'
         updated, count = re.subn(pattern, rf'\g<1>{version}', content)
         if count == 0:
             raise ReleaseToolError(f"Could not rewrite Backend version in {readme_path}")
     elif component_key == "temporal-adapter":
         # Updates taskbridge-temporal version in pip install
-        pattern = r'(pip install taskbridge-temporal==)(\d+\.\d+\.\d+.*)'
+        pattern = r'(pip install taskbridge-temporal==)(\d+\.\d+\.\d+[a-zA-Z0-9.+-]*)'
         updated, count = re.subn(pattern, rf'\g<1>{version}', content)
         if count == 0:
             raise ReleaseToolError(f"Could not rewrite Temporal version in {readme_path}")
