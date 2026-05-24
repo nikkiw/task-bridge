@@ -38,9 +38,9 @@ pip install taskbridge-temporal==0.1.0
 Add the dependencies to your module's `build.gradle.kts` (ensure `mavenCentral()` is in your repositories list):
 ```kotlin
 dependencies {
-    implementation("io.github.nikkiw.taskbridge:taskbridge-core:0.1.0")
+    implementation("io.github.nikkiw.taskbridge:taskbridge-core:0.1.1")
     // OkHttp transport adapter (recommended):
-    implementation("io.github.nikkiw.taskbridge:taskbridge-transport-okhttp:0.1.0")
+    implementation("io.github.nikkiw.taskbridge:taskbridge-transport-okhttp:0.1.1")
 }
 ```
 
