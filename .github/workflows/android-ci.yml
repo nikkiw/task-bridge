@@ -42,6 +42,8 @@ jobs:
       - name: Setup Android SDK
         if: steps.filter.outputs.android_code == 'true'
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Setup Gradle
         if: steps.filter.outputs.android_code == 'true'
