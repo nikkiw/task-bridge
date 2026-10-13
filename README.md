@@ -28,7 +28,7 @@ The repository is organized so those layers can evolve independently without cha
 
 ### 1. Backend (FastAPI)
 ```bash
-pip install taskbridge-fastapi==0.1.1
+pip install taskbridge-fastapi==0.2.0
 
 # Optional: Temporal adapter
 pip install taskbridge-temporal==0.1.0
