@@ -14,7 +14,7 @@ from taskbridge.models import (
     TaskSuspensionRecord,
     TaskSuspensionStatus,
 )
-from taskbridge.services import TaskResumeReconciliationService
+from taskbridge.services import TaskResumeReconciliationService, TaskResumeService
 
 
 class FakeSuspensionStore:
@@ -40,10 +40,11 @@ class FakeSuspensionStore:
 
 class FakeActionReceiptStore:
     def __init__(self, receipts: dict[tuple[str, str], TaskActionReceipt]) -> None:
-        self.receipts = receipts
+        self.receipts = {key: receipt.model_copy(deep=True) for key, receipt in receipts.items()}
 
     async def get_receipt(self, task_id: str, client_action_id: str) -> TaskActionReceipt | None:
-        return self.receipts.get((task_id, client_action_id))
+        receipt = self.receipts.get((task_id, client_action_id))
+        return receipt.model_copy(deep=True) if receipt is not None else None
 
 
 class RecordingResumeService:
@@ -169,7 +170,8 @@ async def test_reconciliation_service_logs_on_success(caplog: Any) -> None:
         suspend_id="s1",
         client_action_id="a1",
         action_type="confirm",
-        payload={},
+        payload={"context": {"answer": "yes", "nested": ["a"]}},
+        metadata={"modelSnapshot": {"answer": "yes", "nested": {"selection": ["a"]}}},
         actor_id="u1",
         status=TaskActionReceiptStatus.ACCEPTED,
         created_at=now,
@@ -188,6 +190,14 @@ async def test_reconciliation_service_logs_on_success(caplog: Any) -> None:
     processed = await service.reconcile_pending_resumes()
 
     assert processed == 1
+    command, dispatched_suspension = resume_service.calls[0]
+    assert command.action_type == "confirm"
+    assert command.payload == {"context": {"answer": "yes", "nested": ["a"]}}
+    assert command.metadata == {"modelSnapshot": {"answer": "yes", "nested": {"selection": ["a"]}}}
+    assert command.auth_context.subject == "u1"
+    assert command.auth_context.scopes == set()
+    assert command.auth_context.app_id is None
+    assert dispatched_suspension.suspend_id == "s1"
 
     # Verify logs
     reconcile_logs = [r for r in caplog.records if r.message == "task.resume.reconciled"]
@@ -196,3 +206,134 @@ async def test_reconciliation_service_logs_on_success(caplog: Any) -> None:
     assert log.taskbridge["taskId"] == "t1"
     assert log.taskbridge["clientRequestId"] == "a1"
     assert log.taskbridge["details"]["suspendId"] == "s1"
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_skips_legacy_a2ui_snapshot_and_continues_other_handoffs() -> None:
+    now = datetime.now(timezone.utc)
+    legacy = TaskSuspensionRecord(
+        task_id="t1",
+        suspend_id="s-a2ui",
+        owner_id="u1",
+        status=TaskSuspensionStatus.RESOLVED,
+        kind=TaskSuspensionKind.USER_ACTION_REQUIRED,
+        reason_code="test",
+        allowed_actions=["a2ui_action"],
+        schema_version=1,
+        created_at=now,
+        successful_action_id="a-a2ui",
+        resume_handoff_status=ResumeHandoffStatus.PENDING,
+    )
+    ordinary = TaskSuspensionRecord(
+        task_id="t1",
+        suspend_id="s-confirm",
+        owner_id="u1",
+        status=TaskSuspensionStatus.RESOLVED,
+        kind=TaskSuspensionKind.USER_ACTION_REQUIRED,
+        reason_code="test",
+        allowed_actions=["confirm"],
+        schema_version=1,
+        created_at=now,
+        successful_action_id="a-confirm",
+        resume_handoff_status=ResumeHandoffStatus.PENDING,
+    )
+    legacy_receipt = TaskActionReceipt(
+        task_id="t1",
+        suspend_id="s-a2ui",
+        client_action_id="a-a2ui",
+        action_type="a2ui_action",
+        payload={"name": "submit_input"},
+        actor_id="u1",
+        status=TaskActionReceiptStatus.ACCEPTED,
+        created_at=now,
+    )
+    ordinary_receipt = TaskActionReceipt(
+        task_id="t1",
+        suspend_id="s-confirm",
+        client_action_id="a-confirm",
+        action_type="confirm",
+        payload={},
+        actor_id="u1",
+        status=TaskActionReceiptStatus.ACCEPTED,
+        created_at=now,
+    )
+    suspension_store = FakeSuspensionStore([legacy, ordinary])
+    receipt_store = FakeActionReceiptStore(
+        {
+            ("t1", "a-a2ui"): legacy_receipt,
+            ("t1", "a-confirm"): ordinary_receipt,
+        }
+    )
+    resume_service = RecordingResumeService()
+    service = TaskResumeReconciliationService(
+        receipt_store=receipt_store,  # type: ignore[arg-type]
+        suspension_store=suspension_store,  # type: ignore[arg-type]
+        resume_service=resume_service,  # type: ignore[arg-type]
+    )
+
+    processed = await service.reconcile_pending_resumes()
+
+    assert processed == 1
+    assert suspension_store.suspensions[0].resume_handoff_status == ResumeHandoffStatus.PENDING
+    assert suspension_store.suspensions[1].resume_handoff_status == ResumeHandoffStatus.DISPATCHED
+    assert suspension_store.marked_dispatched == [("t1", "s-confirm")]
+    assert len(resume_service.calls) == 1
+    assert resume_service.calls[0][0].action_type == "confirm"
+
+
+@pytest.mark.asyncio
+async def test_a2ui_reconciliation_requires_host_resume_override_and_recovers() -> None:
+    class InheritedNoOpResumeService(TaskResumeService):
+        pass
+
+    now = datetime.now(timezone.utc)
+    suspension = TaskSuspensionRecord(
+        task_id="t1",
+        suspend_id="s1",
+        owner_id="u1",
+        status=TaskSuspensionStatus.RESOLVED,
+        kind=TaskSuspensionKind.USER_ACTION_REQUIRED,
+        reason_code="test",
+        allowed_actions=["a2ui_action"],
+        schema_version=1,
+        created_at=now,
+        successful_action_id="a1",
+        resume_handoff_status=ResumeHandoffStatus.PENDING,
+    )
+    receipt = TaskActionReceipt(
+        task_id="t1",
+        suspend_id="s1",
+        client_action_id="a1",
+        action_type="a2ui_action",
+        payload={"name": "submit_input"},
+        metadata={"modelSnapshot": {"answer": "yes", "nested": ["a"]}},
+        actor_id="u1",
+        status=TaskActionReceiptStatus.ACCEPTED,
+        created_at=now,
+    )
+    suspension_store = FakeSuspensionStore([suspension])
+    receipt_store = FakeActionReceiptStore({("t1", "a1"): receipt})
+    no_op_service = TaskResumeReconciliationService(
+        receipt_store=receipt_store,  # type: ignore[arg-type]
+        suspension_store=suspension_store,  # type: ignore[arg-type]
+        resume_service=InheritedNoOpResumeService(),
+    )
+
+    with pytest.raises(RuntimeError, match="A2UI actions require a host resume service"):
+        await no_op_service.reconcile_pending_resumes()
+    assert suspension_store.suspensions[0].resume_handoff_status == ResumeHandoffStatus.PENDING
+    assert suspension_store.marked_dispatched == []
+
+    host_resume_service = RecordingResumeService()
+    hosted_service = TaskResumeReconciliationService(
+        receipt_store=receipt_store,  # type: ignore[arg-type]
+        suspension_store=suspension_store,  # type: ignore[arg-type]
+        resume_service=host_resume_service,  # type: ignore[arg-type]
+    )
+    assert await hosted_service.reconcile_pending_resumes() == 1
+    assert suspension_store.suspensions[0].resume_handoff_status == ResumeHandoffStatus.DISPATCHED
+    assert suspension_store.marked_dispatched == [("t1", "s1")]
+    assert host_resume_service.calls[0][0].metadata == {
+        "modelSnapshot": {"answer": "yes", "nested": ["a"]}
+    }
+    assert await hosted_service.reconcile_pending_resumes() == 0

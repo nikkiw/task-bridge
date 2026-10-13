@@ -303,6 +303,7 @@ class TaskActionReceipt(TaskBridgeModel):
     client_action_id: str
     action_type: str
     payload: dict[str, Any]
+    metadata: dict[str, Any] = Field(default_factory=dict)
     actor_id: str
     status: TaskActionReceiptStatus
     created_at: datetime

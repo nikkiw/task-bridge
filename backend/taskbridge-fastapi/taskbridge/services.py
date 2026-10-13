@@ -10,6 +10,8 @@ from uuid import uuid4
 from .action_receipt_store import ActionReceiptStore
 from .errors import (
     IdempotencyConflictError,
+    InvalidRequestError,
+    TaskConflictError,
     TaskNotFoundError,
     TaskOwnershipError,
     TaskSubmissionError,
@@ -35,7 +37,7 @@ from .models import (
     TaskSuspensionStatus,
 )
 from .observability import MetricsSink, NoOpMetricsSink, log_structured
-from .security import OwnershipPolicy
+from .security import ActionValidationPolicy, OwnershipPolicy
 from .suspension_store import SuspensionStore
 from .task_registry import TaskRegistry
 from .worker import TaskExecutor
@@ -92,13 +94,20 @@ class TaskResumeReconciliationService:
             )
             if receipt is None:
                 continue
+            if receipt.action_type == "a2ui_action" and not receipt.metadata:
+                continue
+            if (
+                receipt.action_type == "a2ui_action"
+                and type(self._resume_service).resume_task is TaskResumeService.resume_task
+            ):
+                raise RuntimeError("A2UI actions require a host resume service")
             command = SubmitActionCommand(
                 task_id=receipt.task_id,
                 client_action_id=receipt.client_action_id,
                 suspend_id=receipt.suspend_id,
                 action_type=receipt.action_type,
                 payload=receipt.payload,
-                metadata={},
+                metadata=receipt.metadata,
                 auth_context=AuthContext(subject=receipt.actor_id),
             )
             await self._resume_service.resume_task(command, suspension)
@@ -173,6 +182,7 @@ class TaskActionService:
         ownership_policy: OwnershipPolicy,
         resume_service: TaskResumeService | None = None,
         metrics_sink: MetricsSink | None = None,
+        action_validation_policy: ActionValidationPolicy | None = None,
     ) -> None:
         """Initialize the action service."""
         self._registry = registry
@@ -182,6 +192,7 @@ class TaskActionService:
         self._ownership_policy = ownership_policy
         self._resume_service = resume_service or TaskResumeService()
         self._metrics_sink = metrics_sink or NoOpMetricsSink()
+        self._action_validation_policy = action_validation_policy
 
     async def submit_action(self, command: SubmitActionCommand) -> SubmitActionResult:
         """Validate and apply a client action to a suspended task.
@@ -197,7 +208,7 @@ class TaskActionService:
             IdempotencyConflictError: If request conflicts with existing receipt.
 
         """
-        await _get_owned_task_or_raise_not_found(
+        task = await _get_owned_task_or_raise_not_found(
             registry=self._registry,
             ownership_policy=self._ownership_policy,
             task_id=command.task_id,
@@ -209,6 +220,8 @@ class TaskActionService:
         )
         if command.action_type not in suspension.allowed_actions:
             raise IdempotencyConflictError(f"Action type not allowed: {command.action_type}")
+        if command.action_type == "a2ui_action" and not command.metadata:
+            raise InvalidRequestError("a2ui_action requires action metadata")
 
         existing = await self._receipt_store.get_receipt(
             command.task_id,
@@ -229,7 +242,20 @@ class TaskActionService:
         if suspension.status == TaskSuspensionStatus.EXPIRED:
             return self._result(command, SubmitActionResultStatus.REJECTED_EXPIRED)
         if suspension.status != TaskSuspensionStatus.OPEN:
+            if suspension.successful_action_id == command.client_action_id:
+                raise TaskConflictError(
+                    f"Action receipt is not yet available for {command.client_action_id}"
+                )
             return self._result(command, SubmitActionResultStatus.REJECTED_ALREADY_RESOLVED)
+        if command.action_type == "a2ui_action" and self._action_validation_policy is None:
+            raise InvalidRequestError("a2ui_action requires a host action validation policy")
+        if self._action_validation_policy is not None:
+            await self._action_validation_policy.validate_action(command, task, suspension)
+        if (
+            command.action_type == "a2ui_action"
+            and type(self._resume_service).resume_task is TaskResumeService.resume_task
+        ):
+            raise RuntimeError("A2UI actions require a host resume service")
 
         accepted = await self._suspension_store.accept_action_if_open(
             command.task_id,
@@ -239,7 +265,19 @@ class TaskActionService:
         if accepted is None:
             current = await self._get_suspension_or_not_found(command.task_id, command.suspend_id)
             if current.successful_action_id == command.client_action_id:
-                return self._result(command, SubmitActionResultStatus.DEDUPLICATED)
+                winning_receipt = await self._receipt_store.get_receipt(
+                    command.task_id,
+                    command.client_action_id,
+                )
+                if winning_receipt is None:
+                    raise TaskConflictError(
+                        f"Action receipt is not yet available for {command.client_action_id}"
+                    )
+                if self._same_action_receipt(winning_receipt, command):
+                    return self._result(command, SubmitActionResultStatus.DEDUPLICATED)
+                raise IdempotencyConflictError(
+                    f"Conflicting idempotent task action for {command.client_action_id}"
+                )
             if current.status == TaskSuspensionStatus.EXPIRED:
                 return self._result(command, SubmitActionResultStatus.REJECTED_EXPIRED)
             return self._result(command, SubmitActionResultStatus.REJECTED_ALREADY_RESOLVED)
@@ -252,6 +290,7 @@ class TaskActionService:
                 client_action_id=command.client_action_id,
                 action_type=command.action_type,
                 payload=command.payload,
+                metadata=command.metadata,
                 actor_id=command.auth_context.subject,
                 status=TaskActionReceiptStatus.ACCEPTED,
                 created_at=now,
@@ -308,6 +347,7 @@ class TaskActionService:
             receipt.suspend_id == command.suspend_id
             and receipt.action_type == command.action_type
             and receipt.payload == command.payload
+            and receipt.metadata == command.metadata
         )
 
     @staticmethod

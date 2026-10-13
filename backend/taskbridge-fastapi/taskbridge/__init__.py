@@ -83,6 +83,7 @@ from .readiness import (
 from .routes_http import HttpRouteSettings, build_http_router, install_http_exception_handlers
 from .routes_ws import WebSocketRouteSettings, build_ws_router
 from .security import (
+    ActionValidationPolicy,
     AllowAllUploadPolicy,
     AuthContextResolver,
     DenyAllAccessPolicy,
@@ -110,6 +111,7 @@ __all__ = [
     "AuthContextResolver",
     "AllowAllUploadPolicy",
     "ActionReceiptStore",
+    "ActionValidationPolicy",
     "AlwaysReadyProbe",
     "AuthenticationError",
     "CancelTaskCommand",

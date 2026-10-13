@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 class ActionReceiptStore(ABC):
     """Interface for persisting and retrieving task action receipts.
 
-    Receipts are used to ensure idempotency for task actions submitted by clients.
+    Receipts preserve the complete accepted payload and metadata as one
+    idempotency snapshot. Implementations must isolate nested mutable values
+    from callers when saving and returning receipts.
     """
 
     @abstractmethod

@@ -6,7 +6,13 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .models import AuthContext, TaskAttachment, TaskRecord
+    from .models import (
+        AuthContext,
+        SubmitActionCommand,
+        TaskAttachment,
+        TaskRecord,
+        TaskSuspensionRecord,
+    )
 
 
 class AuthContextResolver(ABC):
@@ -54,6 +60,25 @@ class OwnershipPolicy(ABC):
             PermissionError: If access is denied.
 
         """
+        raise NotImplementedError
+
+
+class ActionValidationPolicy(ABC):
+    """Host extension point for validating task actions before durable acceptance.
+
+    Implementations validate action-specific schemas and host state, including any
+    A2UI model snapshot required for safe dispatch. Policies must not mutate the
+    command, task, or suspension.
+    """
+
+    @abstractmethod
+    async def validate_action(
+        self,
+        command: SubmitActionCommand,
+        task: TaskRecord,
+        suspension: TaskSuspensionRecord,
+    ) -> None:
+        """Reject invalid actions by raising InvalidRequestError."""
         raise NotImplementedError
 
 

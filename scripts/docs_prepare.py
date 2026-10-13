@@ -109,6 +109,7 @@ LLMS_BACKEND_IMPORTS = dedent(
         EventStore,
         AuthContextResolver,
         OwnershipPolicy,
+        ActionValidationPolicy,
         UploadPolicy,
         MetricsSink,
         ReadinessProbe,
@@ -167,6 +168,7 @@ LLMS_BACKEND_REFERENCE = dedent(
     - `EventStore` methods: `append_event`, `read_events_after`, `wait_for_events`
     - `AuthContextResolver` method: `resolve_auth_context`
     - `OwnershipPolicy` methods: `assert_task_create`, `assert_task_access`
+    - `ActionValidationPolicy` method: `validate_action(command, task, suspension)`; raise `InvalidRequestError` for invalid host-specific actions
     - `UploadPolicy` method: `assert_upload_allowed`
     - `MetricsSink` methods: `increment_counter`, `set_gauge`
     - `ReadinessProbe` method: `check_readiness`
@@ -174,7 +176,7 @@ LLMS_BACKEND_REFERENCE = dedent(
     - `TaskCreateCommand` fields: `client_request_id`, `task_type`, `input_payload`, `metadata`, `attachments`, `auth_context`
     - `TaskEvent` fields: `type`, `task_id`, `event_id`, `created_at`, `payload`
     - `TaskSuspensionRecord` fields: `task_id`, `suspend_id`, `owner_id`, `status`, `kind`, `reason_code`, `allowed_actions`, `schema_version`, `interaction_payload`, `ui_hints`, `resume_token`, `successful_action_id`, `resume_handoff_status`, `created_at`, `expires_at`, `resolved_at`
-    - `TaskActionReceipt` fields: `task_id`, `suspend_id`, `client_action_id`, `action_type`, `payload`, `actor_id`, `status`, `created_at`, `processed_at`, `expires_at`
+    - `TaskActionReceipt` fields: `task_id`, `suspend_id`, `client_action_id`, `action_type`, `payload`, `metadata`, `actor_id`, `status`, `created_at`, `processed_at`, `expires_at`
     - HTTP request models: `HttpTaskCreateRequest`, `HttpCancelTaskRequest`, `HttpSubmitActionRequest`
     - HTTP/WebSocket response models: `TaskCreatedResult`, `PollEventsResult`, `CancelTaskResult`, `SubmitActionResult`, `WebSocketSubscribeRequest`, `WebSocketSubscriptionConfirmed`, `WebSocketHeartbeat`
     """
