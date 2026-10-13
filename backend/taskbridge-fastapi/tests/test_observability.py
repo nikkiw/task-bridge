@@ -249,7 +249,7 @@ async def test_task_action_service_logs_event_appended(caplog: Any) -> None:
             return None
 
         async def save_receipt(self, receipt: TaskActionReceipt) -> TaskActionReceipt:
-            return receipt
+            return receipt.model_copy(deep=True)
 
     caplog.set_level(logging.INFO)
 

@@ -82,6 +82,18 @@ This keeps route code generic while letting the host inject real infrastructure.
 - keep runtime-specific clients and adapters in your host or adapter layer;
 - keep domain-level task shaping outside the generic route and service code.
 
+## Durable action acceptance
+
+Hosts own action-specific validation; the generic library treats `payload` and `metadata` as opaque dictionaries.
+
+1. TaskBridge verifies task ownership and the suspension's `allowed_actions`.
+2. Exact action-ID replays deduplicate only when `suspend_id`, `action_type`, `payload`, and `metadata` all match. Any difference is an idempotency conflict. An `a2ui_action` with empty metadata is rejected before receipt lookup, so a legacy receipt cannot make a new request without a snapshot appear accepted.
+3. For a new action on an open suspension, an injected `ActionValidationPolicy.validate_action(command, task, suspension)` may validate host-specific rules before acceptance. It must raise `InvalidRequestError` for invalid input and must not mutate the command, task, or suspension. For `a2ui_action`, the host policy is required and must validate the model snapshot plus any negotiated capabilities, current surface/component/action, and referenced media or context. TaskBridge does not define snapshot keys or an A2UI schema.
+4. After validation, TaskBridge claims the open suspension via CAS. It then stores the accepted receipt, including the complete payload and metadata snapshot, and appends `TASK_ACTION_ACCEPTED`.
+5. The host resume handler receives the accepted command. If dispatch fails, the handoff remains pending and reconciliation retries from the receipt snapshot. Legacy `a2ui_action` receipts without metadata remain pending instead of being dispatched. The base no-op `TaskResumeService` is not valid for A2UI: a host override is required before acceptance or reconciliation.
+
+The CAS, receipt store, and event store are not one cross-store transaction. Recovery is guaranteed only after the receipt and accepted event have both been stored; a crash in the intervening write window can leave pending state without one of them.
+
 ## Bad host patterns
 
 - handwritten SSE generators that duplicate TaskBridge stream runtime helpers;
